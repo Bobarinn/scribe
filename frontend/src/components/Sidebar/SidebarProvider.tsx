@@ -2,12 +2,9 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import Analytics from '@/lib/analytics';
 import { invoke } from '@tauri-apps/api/core';
 import { useRecordingState } from '@/contexts/RecordingStateContext';
 import type { SummaryProcessResponse } from '@/types';
-
-
 
 interface SidebarItem {
   id: string;
@@ -103,11 +100,9 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
           title: meeting.title
         }));
         setMeetings(transformedMeetings);
-        Analytics.trackBackendConnection(true);
       } catch (error) {
         console.error('Error fetching meetings:', error);
         setMeetings([]);
-        Analytics.trackBackendConnection(false, error instanceof Error ? error.message : 'Unknown error');
       }
     }
   }, [serverAddress]);
@@ -134,7 +129,6 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
       ]
     },
   ];
-
 
   const toggleCollapse = () => {
     setIsCollapsed(!isCollapsed);
@@ -168,8 +162,6 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
         router.push('/');
       }
 
-      // Track recording initiation from sidebar
-      Analytics.trackButtonClick('start_recording', 'sidebar');
     }
     // The actual recording start/stop is handled in the Home component
   };
@@ -183,7 +175,6 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 
     try {
       setIsSearching(true);
-
 
       const results = await invoke('api_search_transcripts', { query }) as TranscriptSearchResult[];
       setSearchResults(results);
@@ -291,8 +282,6 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
     summaryPollsRef.current.forEach(({ timer }) => clearInterval(timer));
     summaryPollsRef.current.clear();
   }, []);
-
-
 
   return (
     <SidebarContext.Provider value={{

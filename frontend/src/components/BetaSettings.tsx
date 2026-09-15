@@ -61,8 +61,8 @@ export function BetaSettings() {
       ))}
 
       {/* Info Box */}
-      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <p className="text-sm text-blue-800">
+      <div className="p-4 bg-brand-eraser border border-primary/25 rounded-lg">
+        <p className="text-sm text-brand-graphite">
           <strong>Note:</strong> When disabled, beta features will be hidden. Your existing meetings remain unaffected.
         </p>
       </div>

@@ -110,14 +110,14 @@ export function LanguagePickerPopover({
                 aria-pressed={value === opt.code}
                 onClick={() => onChange(opt.code)}
                 className={`flex w-full items-center justify-between px-3 py-1.5 text-sm hover:bg-gray-50 text-left ${
-                  value === opt.code ? "text-blue-600 font-medium" : "text-gray-800"
+                  value === opt.code ? "text-primary font-medium" : "text-gray-800"
                 }`}
               >
                 <span>
                   {opt.label}{" "}
                   <span className="text-xs text-gray-400">({opt.code})</span>
                 </span>
-                {value === opt.code && <span className="text-blue-600" aria-hidden="true">✓</span>}
+                {value === opt.code && <span className="text-primary" aria-hidden="true">✓</span>}
               </button>
             ))}
             <div className="my-1 h-px bg-gray-100" />
@@ -130,7 +130,7 @@ export function LanguagePickerPopover({
             aria-pressed={value === null}
             onClick={() => onChange(null)}
             className={`flex w-full items-center justify-between px-3 py-1.5 text-sm hover:bg-gray-50 text-left ${
-              value === null ? "text-blue-600 font-medium" : "text-gray-800"
+              value === null ? "text-primary font-medium" : "text-gray-800"
             }`}
           >
             <span className="flex flex-col">
@@ -139,7 +139,7 @@ export function LanguagePickerPopover({
                 <span className="text-xs font-normal text-gray-400">{autoSubtitle}</span>
               )}
             </span>
-            {value === null && <span className="text-blue-600" aria-hidden="true">✓</span>}
+            {value === null && <span className="text-primary" aria-hidden="true">✓</span>}
           </button>
         )}
 
@@ -156,14 +156,14 @@ export function LanguagePickerPopover({
             aria-pressed={value === opt.code}
             onClick={() => onChange(opt.code)}
             className={`flex w-full items-center justify-between px-3 py-1.5 text-sm hover:bg-gray-50 text-left ${
-              value === opt.code ? "text-blue-600 font-medium" : "text-gray-800"
+              value === opt.code ? "text-primary font-medium" : "text-gray-800"
             }`}
           >
             <span>
               {opt.label}{" "}
               <span className="text-xs text-gray-400">({opt.code})</span>
             </span>
-            {value === opt.code && <span className="text-blue-600" aria-hidden="true">✓</span>}
+            {value === opt.code && <span className="text-primary" aria-hidden="true">✓</span>}
           </button>
         ))}
 

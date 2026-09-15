@@ -18,14 +18,14 @@ const Logo = React.forwardRef<HTMLButtonElement, LogoProps>(
               ref={ref}
               type="button"
               className="flex items-center justify-center mb-2 cursor-pointer bg-transparent border-none p-0 hover:opacity-80 transition-opacity"
-              aria-label="About Meetily"
+              aria-label="About Scribe"
             >
               <Image
                 src="/logo-collapsed.png"
-                alt="Meetily"
+                alt="Scribe"
                 width={40}
                 height={40}
-                className="object-contain"
+                className="object-contain rounded-[10px]"
                 priority
               />
             </button>
@@ -35,16 +35,23 @@ const Logo = React.forwardRef<HTMLButtonElement, LogoProps>(
             <button
               ref={ref}
               type="button"
-              className="w-full text-lg text-center border rounded-full bg-blue-50 border-white font-semibold text-gray-700 mb-2 block items-center cursor-pointer hover:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              aria-label="About Meetily"
+              className="w-full flex items-center justify-center mb-2 cursor-pointer bg-transparent border-none p-2 rounded-xl hover:bg-brand-eraser/60 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              aria-label="About Scribe"
             >
-              <span>Meetily</span>
+              <Image
+                src="/logo.png"
+                alt="Scribe"
+                width={160}
+                height={40}
+                className="object-contain h-9 w-auto"
+                priority
+              />
             </button>
           </DialogTrigger>
         )}
         <DialogContent>
           <VisuallyHidden>
-            <DialogTitle>About Meetily</DialogTitle>
+            <DialogTitle>About Scribe</DialogTitle>
           </VisuallyHidden>
           <About />
         </DialogContent>

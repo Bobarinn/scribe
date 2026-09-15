@@ -10,7 +10,15 @@ module.exports = {
   	extend: {
   		fontFamily: {
   			sans: [
-  				'var(--font-source-sans-3)'
+  				'var(--font-figtree)',
+  				'var(--font-source-sans-3)',
+  				'system-ui',
+  				'sans-serif'
+  			],
+  			display: [
+  				'var(--font-outfit)',
+  				'var(--font-figtree)',
+  				'sans-serif'
   			]
   		},
   		colors: {
@@ -28,6 +36,16 @@ module.exports = {
   				foreground: 'hsl(var(--secondary-foreground))'
   			},
   			tertiary: '#64748b',
+  			brand: {
+  				coral: '#F9424A',
+  				coralBright: '#FF5A60',
+  				ink: '#17161A',
+  				graphite: '#26242B',
+  				body: '#EDEDF2',
+  				side: '#DCDCE6',
+  				wood: '#E7DCC8',
+  				eraser: '#FFE2DF'
+  			},
   			card: {
   				DEFAULT: 'hsl(var(--card))',
   				foreground: 'hsl(var(--card-foreground))'

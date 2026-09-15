@@ -22,7 +22,6 @@ import { toast } from 'sonner';
 import { useConfig } from '@/contexts/ConfigContext';
 import { LANGUAGES } from '@/constants/languages';
 import { useTranscriptionModels, ModelOption } from '@/hooks/useTranscriptionModels';
-import Analytics from '@/lib/analytics';
 
 interface RetranscribeDialogProps {
   open: boolean;
@@ -80,7 +79,6 @@ export function RetranscribeDialog({
   useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
   useEffect(() => { onOpenChangeRef.current = onOpenChange; }, [onOpenChange]);
 
-  // Track previous open state to only reset on closed→open transition
   const prevOpenRef = useRef(false);
 
   // Helper to get selected model details (memoized)
@@ -146,12 +144,6 @@ export function RetranscribeDialog({
         'retranscription-complete',
         async (event) => {
           if (event.payload.meeting_id === meetingId) {
-            await Analytics.track('enhance_transcript_completed', {
-              success: 'true',
-              duration_seconds: event.payload.duration_seconds.toString(),
-              segments_count: event.payload.segments_count.toString()
-            });
-
             setIsProcessing(false);
             toast.success(
               `Retranscription complete! ${event.payload.segments_count} segments created.`
@@ -173,8 +165,6 @@ export function RetranscribeDialog({
         'retranscription-error',
         async (event) => {
           if (event.payload.meeting_id === meetingId) {
-            await Analytics.trackError('enhance_transcript_failed', event.payload.error);
-
             setIsProcessing(false);
             setError(event.payload.error);
           }
@@ -208,11 +198,6 @@ export function RetranscribeDialog({
 
     try {
       const languageToSend = isParakeetModel ? null : selectedLang === 'auto' ? null : selectedLang;
-      await Analytics.track('enhance_transcript_started', {
-        language: isParakeetModel ? 'auto' : (selectedLang === 'auto' ? 'auto' : selectedLang),
-        model_provider: selectedModelDetails?.provider || '',
-        model_name: selectedModelDetails?.name || ''
-      });
 
       await invoke('start_retranscription_command', {
         meetingId,
@@ -225,8 +210,6 @@ export function RetranscribeDialog({
       setIsProcessing(false);
       const errorMsg = typeof err === 'string' ? err : (err?.message || String(err));
       setError(errorMsg);
-
-      await Analytics.trackError('enhance_transcript_failed', errorMsg);
     }
   };
 
@@ -275,7 +258,7 @@ export function RetranscribeDialog({
           <DialogTitle className="flex items-center gap-2">
             {isProcessing ? (
               <>
-                <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
                 Retranscribing...
               </>
             ) : error ? (
@@ -285,7 +268,7 @@ export function RetranscribeDialog({
               </>
             ) : (
               <>
-                <RefreshCw className="h-5 w-5 text-blue-600" />
+                <RefreshCw className="h-5 w-5 text-primary" />
                 Retranscribe Meeting
               </>
             )}
@@ -365,7 +348,7 @@ export function RetranscribeDialog({
               <div className="relative">
                 <div className="w-full bg-gray-200 rounded-full h-3">
                   <div
-                    className="bg-blue-600 h-3 rounded-full transition-all duration-300 ease-out"
+                    className="bg-primary h-3 rounded-full transition-all duration-300 ease-out"
                     style={{ width: `${Math.min(progress.progress_percentage, 100)}%` }}
                   />
                 </div>
@@ -395,7 +378,7 @@ export function RetranscribeDialog({
               </Button>
               <Button
                 onClick={handleStartRetranscription}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-primary hover:bg-primary/90"
                 disabled={!meetingFolderPath}
               >
                 <RefreshCw className="h-4 w-4 mr-2" />

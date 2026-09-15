@@ -9,7 +9,6 @@ import { ConfirmationModal } from '../ConfirmationModel/confirmation-modal';
 import { ModelConfig } from '@/components/ModelSettingsModal';
 import { SettingTabs } from '../SettingTabs';
 import { TranscriptModelProps } from '@/components/TranscriptSettings';
-import Analytics from '@/lib/analytics';
 import { invoke } from '@tauri-apps/api/core';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
@@ -102,7 +101,6 @@ const Sidebar: React.FC = () => {
   //   }
   // }, [settingsSaveSuccess]);
 
-
   const [deleteModalState, setDeleteModalState] = useState<{ isOpen: boolean; itemId: string | null }>({ isOpen: false, itemId: null });
 
   useEffect(() => {
@@ -137,7 +135,6 @@ const Sidebar: React.FC = () => {
 
     fetchModelConfig();
   }, [serverAddress]);
-
 
   useEffect(() => {
     // Note: Don't set hardcoded defaults - let DB be the source of truth
@@ -180,8 +177,6 @@ const Sidebar: React.FC = () => {
     };
   }, []);
 
-
-
   // Handle model config save
   const handleSaveModelConfig = async (config: ModelConfig) => {
     try {
@@ -201,8 +196,6 @@ const Sidebar: React.FC = () => {
       const { emit } = await import('@tauri-apps/api/event');
       await emit('model-config-updated', config);
 
-      // Track settings change
-      await Analytics.trackSettingsChanged('model_config', `${config.provider}_${config.model}`);
     } catch (error) {
       console.error('Error saving model config:', error);
       setSettingsSaveSuccess(false);
@@ -225,12 +218,8 @@ const Sidebar: React.FC = () => {
         apiKey: payload.apiKey,
       });
 
-
       setSettingsSaveSuccess(true);
 
-      // Track settings change
-      const transcriptConfigToSave = updatedConfig || transcriptModelConfig;
-      await Analytics.trackSettingsChanged('transcript_config', `${transcriptConfigToSave.provider}_${transcriptConfigToSave.model}`);
     } catch (error) {
       console.error('Failed to save transcript config:', error);
       setSettingsSaveSuccess(false);
@@ -317,7 +306,6 @@ const Sidebar: React.FC = () => {
     }
   }, [sidebarItems, searchQuery, searchResults, expandedFolders]);
 
-
   const handleDelete = async (itemId: string) => {
     console.log('Deleting item:', itemId);
     const payload = {
@@ -332,9 +320,6 @@ const Sidebar: React.FC = () => {
       console.log('Meeting deleted successfully');
       const updatedMeetings = meetings.filter((m: CurrentMeeting) => m.id !== itemId);
       setMeetings(updatedMeetings);
-
-      // Track meeting deletion
-      Analytics.trackMeetingDeleted(itemId);
 
       // Show success toast
       toast.success("Meeting deleted successfully", {
@@ -399,9 +384,6 @@ const Sidebar: React.FC = () => {
       if (currentMeeting?.id === meetingId) {
         setCurrentMeeting({ id: meetingId, title: newTitle });
       }
-
-      // Track the edit
-      Analytics.trackButtonClick('edit_meeting_title', 'sidebar');
 
       toast.success("Meeting title updated successfully");
 
@@ -495,9 +477,9 @@ const Sidebar: React.FC = () => {
               <TooltipTrigger asChild>
                 <button
                   onClick={() => openImportDialog()}
-                  className="p-2 rounded-lg transition-colors duration-150 hover:bg-blue-100 bg-blue-50"
+                  className="p-2 rounded-lg transition-colors duration-150 hover:bg-brand-eraser bg-brand-eraser"
                 >
-                  <Upload className="w-5 h-5 text-blue-600" />
+                  <Upload className="w-5 h-5 text-primary" />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="right">
@@ -568,7 +550,7 @@ const Sidebar: React.FC = () => {
         <div
           className={`flex items-center transition-all duration-150 group ${item.type === 'folder' && depth === 0
             ? 'p-3 text-lg font-semibold h-10 mx-3 mt-3 rounded-lg'
-            : `px-3 py-2 my-0.5 rounded-md text-sm ${isActive ? 'bg-blue-100 text-blue-700 font-medium' :
+            : `px-3 py-2 my-0.5 rounded-md text-sm ${isActive ? 'bg-brand-eraser text-primary font-medium' :
               hasTranscriptMatch ? 'bg-yellow-50' : 'hover:bg-gray-50'
             } cursor-pointer`
             }`}
@@ -600,7 +582,7 @@ const Sidebar: React.FC = () => {
                 )}
               </div>
               {searchQuery && item.id === 'meetings' && isSearching && (
-                <span className="ml-2 text-xs text-blue-500 animate-pulse">Searching...</span>
+                <span className="ml-2 text-xs text-primary animate-pulse">Searching...</span>
               )}
             </>
           ) : (
@@ -611,8 +593,8 @@ const Sidebar: React.FC = () => {
                     <File className="w-3.5 h-3.5 text-gray-600" />
                   </div>
                 ) : (
-                  <div className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full mr-2 bg-blue-100">
-                    <Plus className="w-3.5 h-3.5 text-blue-600" />
+                  <div className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full mr-2 bg-brand-eraser">
+                    <Plus className="w-3.5 h-3.5 text-primary" />
                   </div>
                 )}
                 <span className="flex-1 break-words">{item.title}</span>
@@ -623,7 +605,7 @@ const Sidebar: React.FC = () => {
                         e.stopPropagation();
                         handleEditStart(item.id, item.title);
                       }}
-                      className="hover:text-blue-600 p-1 rounded-md hover:bg-blue-50 flex-shrink-0"
+                      className="hover:text-primary p-1 rounded-md hover:bg-brand-eraser/70 flex-shrink-0"
                       aria-label="Edit meeting title"
                     >
                       <Pencil className="w-4 h-4" />
@@ -684,13 +666,11 @@ const Sidebar: React.FC = () => {
 
           {/* Title container */}
 
-
-
           <div className="flex-1">
             {!isCollapsed && (
               <div className="p-3">
-                {/* <span className="text-lg text-center border rounded-full bg-blue-50 border-white font-semibold text-gray-700 mb-2 block items-center">
-                  <span>Meetily</span>
+                {/* <span className="text-lg text-center border rounded-full bg-brand-eraser border-white font-semibold text-gray-700 mb-2 block items-center">
+                  <span>Scribe</span>
                 </span> */}
                 <Logo isCollapsed={isCollapsed} />
 
@@ -747,7 +727,7 @@ const Sidebar: React.FC = () => {
                       <NotebookPen className="w-4 h-4 mr-2 text-gray-600" />
                       <span className="text-gray-700">{item.title}</span>
                       {searchQuery && item.id === 'meetings' && isSearching && (
-                        <span className="ml-2 text-xs text-blue-500 animate-pulse">Searching...</span>
+                        <span className="ml-2 text-xs text-primary animate-pulse">Searching...</span>
                       )}
                     </div>
                   </div>
@@ -795,7 +775,7 @@ const Sidebar: React.FC = () => {
             {betaFeatures.importAndRetranscribe && (
               <button
                 onClick={() => openImportDialog()}
-                className="w-full flex items-center justify-center px-3 py-2 mt-1 text-sm font-medium text-gray-700 bg-blue-100 hover:bg-blue-200 rounded-lg transition-colors shadow-sm"
+                className="w-full flex items-center justify-center px-3 py-2 mt-1 text-sm font-medium text-gray-700 bg-brand-eraser hover:bg-brand-eraser rounded-lg transition-colors shadow-sm"
               >
                 <Upload className="w-4 h-4 mr-2" />
                 <span>Import Audio</span>
@@ -852,7 +832,7 @@ const Sidebar: React.FC = () => {
                       handleEditCancel();
                     }
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                   placeholder="Enter meeting title"
                   autoFocus
                 />
@@ -868,7 +848,7 @@ const Sidebar: React.FC = () => {
             </button>
             <button
               onClick={handleEditConfirm}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
+              className="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-md transition-colors"
             >
               Save
             </button>

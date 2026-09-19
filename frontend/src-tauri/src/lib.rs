@@ -41,6 +41,7 @@ pub mod config;
 pub mod console_utils;
 pub mod database;
 pub mod meeting_detection;
+pub mod meetily_sync;
 pub mod notifications;
 pub mod ollama;
 pub mod onboarding;
@@ -797,6 +798,10 @@ pub fn run() {
             database::commands::check_homebrew_database,
             database::commands::import_and_initialize_database,
             database::commands::initialize_fresh_database,
+            // Meetily-to-Scribe sync commands (same schema, different app identity)
+            meetily_sync::check_for_meetily_data,
+            meetily_sync::select_meetily_database_path,
+            meetily_sync::import_meetily_data,
             // Database and Models path commands
             database::commands::get_database_directory,
             database::commands::open_database_folder,

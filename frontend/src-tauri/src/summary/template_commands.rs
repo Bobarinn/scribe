@@ -1,5 +1,6 @@
 use crate::summary::templates;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use tauri::Runtime;
 use tracing::{info, warn};
 
@@ -14,6 +15,10 @@ pub struct TemplateInfo {
 
     /// Brief description of the template's purpose
     pub description: String,
+
+    /// Whether this is a user-created custom template (deletable).
+    #[serde(rename = "isCustom")]
+    pub is_custom: bool,
 }
 
 /// Detailed template structure for preview/debugging
@@ -46,19 +51,79 @@ pub async fn api_list_templates<R: Runtime>(
     info!("api_list_templates called");
 
     let templates = templates::list_templates();
+    let custom_ids = templates::list_custom_template_ids();
 
     let template_infos: Vec<TemplateInfo> = templates
         .into_iter()
-        .map(|(id, name, description)| TemplateInfo {
-            id,
-            name,
-            description,
+        .map(|(id, name, description)| {
+            let is_custom = custom_ids.contains(&id);
+            TemplateInfo {
+                id,
+                name,
+                description,
+                is_custom,
+            }
         })
         .collect();
 
     info!("Found {} available templates", template_infos.len());
 
     Ok(template_infos)
+}
+
+/// Create a new custom meeting type (stored as a custom template that reuses the
+/// standard meeting summary format).
+///
+/// # Arguments
+/// * `name` - Human-readable display name for the new type
+///
+/// # Returns
+/// The generated template id on success
+#[tauri::command]
+pub async fn api_create_custom_template<R: Runtime>(
+    _app: tauri::AppHandle<R>,
+    name: String,
+) -> Result<String, String> {
+    info!("api_create_custom_template called with name: {}", name);
+    templates::create_custom_template(&name)
+}
+
+/// Delete a user-created custom meeting type. Built-in and bundled templates
+/// cannot be deleted.
+///
+/// # Arguments
+/// * `template_id` - Identifier of the custom template to delete
+#[tauri::command]
+pub async fn api_delete_custom_template<R: Runtime>(
+    _app: tauri::AppHandle<R>,
+    template_id: String,
+) -> Result<(), String> {
+    info!("api_delete_custom_template called for: {}", template_id);
+    templates::delete_custom_template(&template_id)
+}
+
+/// Returns the `template_id -> "HH:MM"` schedule map used for time-of-day
+/// auto-guessing of the meeting type.
+#[tauri::command]
+pub async fn api_get_template_schedules<R: Runtime>(
+    _app: tauri::AppHandle<R>,
+) -> Result<HashMap<String, String>, String> {
+    Ok(templates::get_template_schedules())
+}
+
+/// Sets (or clears, when `time_of_day` is `None`/empty) the approximate time of
+/// day for a template. Time is expected in 24-hour `HH:MM` format.
+#[tauri::command]
+pub async fn api_set_template_schedule<R: Runtime>(
+    _app: tauri::AppHandle<R>,
+    template_id: String,
+    time_of_day: Option<String>,
+) -> Result<(), String> {
+    info!(
+        "api_set_template_schedule called for '{}' -> {:?}",
+        template_id, time_of_day
+    );
+    templates::set_template_schedule(&template_id, time_of_day.as_deref())
 }
 
 /// Gets detailed information about a specific template

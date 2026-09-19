@@ -35,17 +35,22 @@ const Logo = React.forwardRef<HTMLButtonElement, LogoProps>(
             <button
               ref={ref}
               type="button"
-              className="w-full flex items-center justify-center mb-2 cursor-pointer bg-transparent border-none p-2 rounded-xl hover:bg-brand-eraser/60 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="w-full flex items-center justify-center gap-2 mb-2 cursor-pointer bg-transparent border-none p-2 rounded-xl hover:bg-brand-eraser/60 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               aria-label="About Scribe"
             >
+              {/* Coral pencil mark reads clearly on the white sidebar; the
+                  wordmark uses the brand display font. */}
               <Image
-                src="/logo.png"
-                alt="Scribe"
-                width={160}
-                height={40}
-                className="object-contain h-9 w-auto"
+                src="/logo-collapsed.png"
+                alt=""
+                width={32}
+                height={32}
+                className="object-contain rounded-[8px]"
                 priority
               />
+              <span className="font-display text-2xl font-bold text-foreground tracking-tight leading-none">
+                Scribe
+              </span>
             </button>
           </DialogTrigger>
         )}

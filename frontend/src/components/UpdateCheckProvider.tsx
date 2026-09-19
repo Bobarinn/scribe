@@ -9,7 +9,7 @@ import { setUpdateDialogCallback, showUpdateNotification } from './UpdateNotific
 interface UpdateCheckContextType {
   updateInfo: UpdateInfo | null;
   isChecking: boolean;
-  checkForUpdates: (force?: boolean) => Promise<void>;
+  checkForUpdates: (force?: boolean) => Promise<UpdateInfo | undefined>;
   showUpdateDialog: () => void;
 }
 
@@ -42,8 +42,15 @@ export function UpdateCheckProvider({ children }: { children: React.ReactNode })
   // Listen for tray menu events
   useEffect(() => {
     const handleTrayCheck = () => {
-      checkForUpdates(true); // Force check from tray
-      setShowDialog(true);
+      // Force check from tray; only open the dialog once we know an update
+      // is actually available (it renders nothing otherwise).
+      checkForUpdates(true)
+        .then((info) => {
+          if (info?.available) {
+            setShowDialog(true);
+          }
+        })
+        .catch(() => {});
     };
 
     window.addEventListener('check-updates-from-tray', handleTrayCheck);

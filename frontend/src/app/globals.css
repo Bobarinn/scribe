@@ -78,59 +78,60 @@
 
 @layer base {
   :root {
-    /* Scribe brand: coral #F9424A, ink #17161A, graphite #26242B, body #EDEDF2 */
-    --background: 240 14% 97%;
-    --foreground: 255 8% 9%;
+    /* Scribe theme: ink is the accent; coral (#F9424A) means ONLY "audio is live".
+       See Theme Guide. Non-record UI uses ink + cool-neutral grays. */
+    --background: 0 0% 100%;            /* stage #FFFFFF */
+    --foreground: 255 8% 9%;            /* text primary / ink #17161A */
     --card: 0 0% 100%;
     --card-foreground: 255 8% 9%;
     --popover: 0 0% 100%;
     --popover-foreground: 255 8% 9%;
-    --primary: 357 94% 62%;
+    --primary: 255 8% 9%;              /* accent = ink (was coral) */
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 14% 94%;
-    --secondary-foreground: 255 8% 15%;
-    --muted: 240 14% 94%;
-    --muted-foreground: 240 6% 40%;
-    --accent: 8 100% 94%;
-    --accent-foreground: 255 8% 15%;
-    --destructive: 0 84.2% 60.2%;
+    --secondary: 240 9% 95%;           /* fills / hover #F1F1F3 */
+    --secondary-foreground: 255 8% 9%;
+    --muted: 240 9% 95%;
+    --muted-foreground: 222 7% 35%;    /* text secondary #55585F */
+    --accent: 240 9% 95%;              /* neutral fill (was coral tint) */
+    --accent-foreground: 255 8% 9%;
+    --destructive: 357 58% 49%;        /* #C4343A — distinct from live coral */
     --destructive-foreground: 0 0% 98%;
-    --border: 240 10% 88%;
-    --input: 240 10% 88%;
-    --ring: 357 94% 62%;
+    --border: 240 7% 89%;              /* control border #E2E2E6 */
+    --input: 240 7% 89%;
+    --ring: 255 8% 9%;                 /* focus ring = ink (was coral) */
     --radius: 0.75rem;
-    --chart-1: 357 94% 62%;
-    --chart-2: 33 35% 84%;
-    --chart-3: 255 8% 15%;
-    --chart-4: 240 14% 88%;
-    --chart-5: 8 100% 94%;
+    --chart-1: 255 8% 9%;              /* speaker hues (desaturated, no coral) */
+    --chart-2: 211 30% 42%;
+    --chart-3: 166 30% 42%;
+    --chart-4: 39 49% 36%;
+    --chart-5: 265 21% 45%;
   }
 
   .dark {
-    --background: 255 8% 9%;
-    --foreground: 240 14% 94%;
-    --card: 255 6% 12%;
-    --card-foreground: 240 14% 94%;
-    --popover: 255 6% 12%;
-    --popover-foreground: 240 14% 94%;
-    --primary: 357 100% 68%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 255 6% 16%;
-    --secondary-foreground: 240 14% 94%;
-    --muted: 255 6% 16%;
-    --muted-foreground: 240 8% 65%;
-    --accent: 357 40% 18%;
-    --accent-foreground: 8 100% 94%;
-    --destructive: 0 62.8% 30.6%;
+    --background: 225 8% 10%;           /* stage #17181B */
+    --foreground: 228 20% 96%;          /* text #F4F5F7 */
+    --card: 225 8% 12%;                 /* rail #1D1E22 */
+    --card-foreground: 228 20% 96%;
+    --popover: 225 8% 12%;
+    --popover-foreground: 228 20% 96%;
+    --primary: 228 20% 96%;            /* accent = near-white ink (was coral) */
+    --primary-foreground: 225 8% 10%;
+    --secondary: 223 7% 19%;           /* fills #2C2E33 */
+    --secondary-foreground: 228 20% 96%;
+    --muted: 223 7% 19%;
+    --muted-foreground: 219 9% 67%;    /* text secondary #A4A9B2 */
+    --accent: 223 7% 19%;              /* neutral fill (was coral tint) */
+    --accent-foreground: 228 20% 96%;
+    --destructive: 357 71% 61%;        /* #E2565C */
     --destructive-foreground: 0 0% 98%;
-    --border: 255 6% 18%;
-    --input: 255 6% 18%;
-    --ring: 357 100% 68%;
-    --chart-1: 357 100% 68%;
-    --chart-2: 33 35% 70%;
-    --chart-3: 240 14% 88%;
-    --chart-4: 255 6% 30%;
-    --chart-5: 8 60% 40%;
+    --border: 225 7% 22%;              /* border #33353B */
+    --input: 225 11% 15%;             /* input #22242A */
+    --ring: 228 20% 96%;              /* focus ring = near-white ink (was coral) */
+    --chart-1: 228 20% 96%;
+    --chart-2: 211 34% 58%;
+    --chart-3: 166 34% 55%;
+    --chart-4: 39 52% 55%;
+    --chart-5: 265 28% 65%;
   }
 }
 
@@ -146,10 +147,18 @@
     height: 100%;
   }
 
-  /* Make the window draggable */
-  .titlebar {
-    -webkit-app-region: drag;
-    app-region: drag;
+  /* Window dragging.
+     Tauri's WKWebView (macOS) does NOT honor Chromium's
+     `-webkit-app-region: drag`; the supported mechanism is the
+     `data-tauri-drag-region` attribute, which Tauri detects on the element
+     directly under the cursor. We put that attribute on the header
+     containers; interactive controls (buttons/inputs) are never given it, so
+     they stay clickable. These rules just stop the drag surfaces from
+     selecting text / showing a text cursor. */
+  [data-app-drag] {
+    -webkit-user-select: none;
+    user-select: none;
+    cursor: default;
   }
 
   .no-drag {
@@ -186,6 +195,22 @@
     width: 100% !important;
     max-width: none !important;
     overflow: visible !important;
+    /* Match the rest of the app (and the transcript) instead of BlockNote's
+       bundled default font, which fell back oddly and looked out of place. */
+    --bn-font-family: var(--font-figtree), ui-sans-serif, system-ui, -apple-system,
+      'Segoe UI', Roboto, sans-serif;
+    font-family: var(--bn-font-family);
+  }
+
+  /* Force the app font across every BlockNote surface (editor, inline content,
+     menus, side menu) so the summary reads consistently with the transcript. */
+  .bn-container,
+  .bn-container .bn-editor,
+  .bn-container .ProseMirror,
+  .bn-container .bn-inline-content,
+  .bn-container [class^='bn-'],
+  .bn-container [class*=' bn-'] {
+    font-family: var(--bn-font-family) !important;
   }
 
   .bn-editor {
@@ -212,4 +237,169 @@
   [data-node-type] {
     overflow: visible !important;
   }
+}
+
+/* ============================================================
+   Dark-mode compatibility layer
+   Many components still hardcode light Tailwind colors (bg-white,
+   bg-gray-*, text-gray-*, border-gray-*, light status tints). These
+   rules remap those utilities to theme tokens ONLY under .dark, so
+   light mode is untouched while dark mode stays readable with proper
+   contrast. Scoped selectors (.dark .x) win on specificity; kept out
+   of @layer so they reliably override Tailwind utilities.
+   ============================================================ */
+
+/* --- Surfaces (cards, panels, pills) --- */
+.dark .bg-white,
+.dark .bg-white\/95,
+.dark .bg-white\/90,
+.dark .bg-white\/80,
+.dark .bg-white\/70,
+.dark .bg-white\/60,
+.dark .bg-white\/50 {
+  background-color: hsl(var(--card));
+}
+
+.dark .bg-gray-50,
+.dark .bg-gray-100,
+.dark .bg-slate-50,
+.dark .bg-slate-100,
+.dark .bg-brand-body,
+.dark .bg-brand-body\/60,
+.dark .bg-brand-side,
+.dark .bg-brand-eraser,
+.dark .bg-brand-eraser\/50,
+.dark .bg-brand-eraser\/60,
+.dark .bg-brand-eraser\/70,
+.dark .bg-brand-fill,
+.dark .bg-brand-subtle {
+  background-color: hsl(var(--secondary));
+}
+
+/* Gradient stops that hardcode light fills (AI buttons, cards) → dark fills */
+.dark .from-brand-eraser { --tw-gradient-from: hsl(var(--secondary)) var(--tw-gradient-from-position); --tw-gradient-to: hsl(var(--secondary) / 0) var(--tw-gradient-to-position); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
+.dark .to-brand-body,
+.dark .to-brand-side { --tw-gradient-to: hsl(var(--muted)) var(--tw-gradient-to-position); }
+.dark .hover\:from-brand-eraser:hover { --tw-gradient-from: hsl(var(--secondary)) var(--tw-gradient-from-position); --tw-gradient-to: hsl(var(--secondary) / 0) var(--tw-gradient-to-position); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
+.dark .hover\:to-brand-side:hover { --tw-gradient-to: hsl(var(--secondary)) var(--tw-gradient-to-position); }
+
+/* Selected model card ring/border (BuiltInModelManager) → visible accent in dark */
+.dark .ring-gray-800 { --tw-ring-color: hsl(var(--primary)); }
+.dark .border-gray-800 { border-color: hsl(var(--primary)); }
+
+/* "Stop generation" button uses a light red/orange gradient → translucent in dark */
+.dark .from-red-50 { --tw-gradient-from: rgba(239, 68, 68, 0.16) var(--tw-gradient-from-position); --tw-gradient-to: rgba(239, 68, 68, 0) var(--tw-gradient-to-position); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
+.dark .to-orange-50 { --tw-gradient-to: rgba(249, 115, 22, 0.16) var(--tw-gradient-to-position); }
+.dark .hover\:from-red-100:hover { --tw-gradient-from: rgba(239, 68, 68, 0.24) var(--tw-gradient-from-position); --tw-gradient-to: rgba(239, 68, 68, 0) var(--tw-gradient-to-position); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
+.dark .hover\:to-orange-100:hover { --tw-gradient-to: rgba(249, 115, 22, 0.24) var(--tw-gradient-to-position); }
+
+.dark .bg-gray-200,
+.dark .bg-gray-300,
+.dark .bg-slate-200 {
+  background-color: hsl(var(--muted));
+}
+
+/* --- Hover surfaces --- */
+.dark .hover\:bg-gray-50:hover,
+.dark .hover\:bg-gray-100:hover,
+.dark .hover\:bg-slate-100:hover,
+.dark .hover\:bg-brand-eraser\/50:hover,
+.dark .hover\:bg-brand-eraser\/60:hover,
+.dark .hover\:bg-brand-eraser\/70:hover {
+  background-color: hsl(var(--secondary));
+}
+
+.dark .hover\:bg-gray-200:hover,
+.dark .hover\:bg-gray-300:hover {
+  background-color: hsl(var(--muted));
+}
+
+/* --- Text --- */
+.dark .text-gray-400,
+.dark .text-gray-500,
+.dark .text-gray-600 {
+  color: hsl(var(--muted-foreground));
+}
+
+.dark .text-gray-700,
+.dark .text-gray-800,
+.dark .text-gray-900,
+.dark .text-black,
+.dark .text-brand-ink,
+.dark .text-brand-graphite {
+  color: hsl(var(--foreground));
+}
+
+.dark .hover\:text-gray-700:hover,
+.dark .hover\:text-gray-800:hover,
+.dark .hover\:text-gray-900:hover,
+.dark .hover\:text-brand-ink:hover {
+  color: hsl(var(--foreground));
+}
+
+.dark .placeholder\:text-gray-400::placeholder,
+.dark .placeholder\:text-gray-500::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+
+/* --- Borders / dividers --- */
+.dark .border-gray-100,
+.dark .border-gray-200,
+.dark .border-gray-300,
+.dark .border-slate-200 {
+  border-color: hsl(var(--border));
+}
+
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: hsl(var(--border));
+}
+
+/* --- Primary buttons that hardcode white text: the ink accent is
+   near-white in dark, so white-on-white would vanish. --- */
+.dark .bg-primary.text-white {
+  color: hsl(var(--primary-foreground));
+}
+
+/* --- Light status tints → translucent so they read on the dark stage --- */
+.dark .bg-yellow-50 { background-color: rgba(234, 179, 8, 0.12); }
+.dark .bg-green-50 { background-color: rgba(34, 197, 94, 0.12); }
+.dark .bg-blue-50 { background-color: rgba(59, 130, 246, 0.12); }
+.dark .bg-red-50 { background-color: rgba(239, 68, 68, 0.12); }
+
+.dark .border-yellow-100, .dark .border-yellow-200 { border-color: rgba(234, 179, 8, 0.25); }
+.dark .border-green-100, .dark .border-green-200 { border-color: rgba(34, 197, 94, 0.25); }
+.dark .border-blue-100, .dark .border-blue-200 { border-color: rgba(59, 130, 246, 0.25); }
+.dark .border-red-100, .dark .border-red-200 { border-color: rgba(239, 68, 68, 0.25); }
+
+.dark .text-yellow-600, .dark .text-yellow-700, .dark .text-yellow-800 { color: #fcd34d; }
+.dark .text-green-600, .dark .text-green-700, .dark .text-green-800 { color: #4ade80; }
+.dark .text-blue-600, .dark .text-blue-700, .dark .text-blue-800 { color: #93c5fd; }
+.dark .text-red-500, .dark .text-red-600, .dark .text-red-700 { color: #f87171; }
+
+/* --- Scrollbar --- */
+.dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #3a3d44; }
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #4a4e56; }
+.dark .custom-scrollbar { scrollbar-color: #3a3d44 transparent; }
+
+/* --- BlockNote summary editor in dark ---
+   BlockNote's shadcn dark theme paints its own editor background, which reads
+   as a different shade than the surrounding panel. Make the editor surfaces
+   transparent so the summary sits on the same panel background as the
+   transcript (matching how light mode already looks). --- */
+.dark .bn-container,
+.dark .bn-editor,
+.dark .ProseMirror {
+  color: hsl(var(--foreground));
+}
+
+.bn-container,
+.bn-editor,
+.bn-container .bn-editor,
+.bn-container .ProseMirror {
+  background-color: transparent !important;
+}
+
+.dark .bn-container {
+  --bn-colors-editor-background: transparent;
 }

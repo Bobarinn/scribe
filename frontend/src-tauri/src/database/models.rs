@@ -9,6 +9,9 @@ pub struct MeetingModel {
     pub created_at: DateTimeUtc,
     pub updated_at: DateTimeUtc,
     pub folder_path: Option<String>,
+    /// Free-form category label (maps to a template id) used to group/filter
+    /// meetings in the UI. Does not affect summary formatting.
+    pub meeting_type: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]

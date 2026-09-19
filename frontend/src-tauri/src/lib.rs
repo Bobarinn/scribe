@@ -40,6 +40,7 @@ pub mod audio;
 pub mod config;
 pub mod console_utils;
 pub mod database;
+pub mod meeting_detection;
 pub mod notifications;
 pub mod ollama;
 pub mod onboarding;
@@ -508,6 +509,15 @@ pub fn run() {
                 log::error!("Failed to create system tray: {}", e);
             }
 
+            // Start background detection of started calls (Zoom/Webex/FaceTime).
+            // The frontend decides whether to notify or auto-start, and can
+            // disable this entirely.
+            //
+            // TEMPORARILY DISABLED per request: the detector is not activated for
+            // now. The implementation is intentionally kept intact — re-enable by
+            // uncommenting the line below.
+            // meeting_detection::spawn_call_detection(_app.handle().clone());
+
             // Initialize notification system with proper defaults
             log::info!("Initializing notification system...");
             let app_for_notif = _app.handle().clone();
@@ -702,6 +712,9 @@ pub fn run() {
             api::api_get_meeting_metadata,
             api::api_get_meeting_transcripts,
             api::api_save_meeting_title,
+            api::api_set_meeting_type,
+            api::api_get_meeting_detection_settings,
+            api::api_save_meeting_detection_settings,
             api::api_save_transcript,
             api::open_meeting_folder,
             api::test_backend_connection,
@@ -725,6 +738,10 @@ pub fn run() {
             summary::template_commands::api_list_templates,
             summary::template_commands::api_get_template_details,
             summary::template_commands::api_validate_template,
+            summary::template_commands::api_create_custom_template,
+            summary::template_commands::api_delete_custom_template,
+            summary::template_commands::api_get_template_schedules,
+            summary::template_commands::api_set_template_schedule,
             // Built-in AI commands
             summary::summary_engine::commands::builtin_ai_list_models,
             summary::summary_engine::commands::builtin_ai_get_model_info,

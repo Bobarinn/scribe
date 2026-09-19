@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { MeetingSummary, SummaryProcessResponse } from '@/types';
 import { useSidebar } from '@/components/Sidebar/SidebarProvider';
@@ -17,6 +17,8 @@ import { useTemplates } from '@/hooks/meeting-details/useTemplates';
 import { useCopyOperations } from '@/hooks/meeting-details/useCopyOperations';
 import { useMeetingOperations } from '@/hooks/meeting-details/useMeetingOperations';
 import { useConfig } from '@/contexts/ConfigContext';
+import { parseDate } from '@/lib/format-date';
+import { guessTemplateIdForDate, type TemplateSchedules } from '@/lib/template-schedule';
 
 export default function PageContent({
   meeting,
@@ -67,14 +69,74 @@ export default function PageContent({
   const autoGenerationStartedMeetingIdRef = useRef<string | null>(null);
 
   // Sidebar context
-  const { serverAddress } = useSidebar();
+  const { serverAddress, meetings } = useSidebar();
 
   // Get model config from ConfigContext
   const { modelConfig, setModelConfig, isModelConfigLoading } = useConfig();
 
   // Custom hooks
   const meetingData = useMeetingData({ meeting, summaryData, onMeetingUpdated });
-  const templates = useTemplates();
+
+  // Seed the selected template from the meeting's persisted type (used for
+  // grouping/filtering) so the summary-side picker reflects the meeting's type.
+  const initialMeetingType = meetings.find(m => m.id === meeting.id)?.meetingType ?? undefined;
+  const templates = useTemplates(initialMeetingType);
+
+  // Selecting a template on the summary side also sets the meeting's type, which
+  // drives grouping/filtering on the All Meetings screen. No extra step needed.
+  const handleTemplateSelect = useCallback(
+    async (templateId: string, templateName: string) => {
+      templates.handleTemplateSelection(templateId, templateName);
+      try {
+        await invoke('api_set_meeting_type', { meetingId: meeting.id, meetingType: templateId });
+        await onMeetingUpdated?.();
+      } catch (error) {
+        console.error('Failed to persist meeting type:', error);
+      }
+    },
+    [templates.handleTemplateSelection, meeting.id, onMeetingUpdated],
+  );
+
+  // Time-of-day auto-guess: for a freshly recorded meeting that has no type yet,
+  // pre-select (and persist) the template whose scheduled time is closest to when
+  // the meeting started. Runs at most once per meeting and only for recent
+  // meetings, so opening old uncategorized notes never reassigns them.
+  const autoTypeGuessedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const meetingEntry = meetings.find(m => m.id === meeting.id);
+    const storedType = meetingEntry?.meetingType;
+    if (storedType) return;
+    if (autoTypeGuessedRef.current.has(meeting.id)) return;
+    if (templates.availableTemplates.length === 0) return;
+
+    const createdAtRaw = meetingEntry?.createdAt ?? meeting.created_at;
+    const createdAt = parseDate(createdAtRaw);
+    if (!createdAt) return;
+
+    // Only auto-guess for recently started meetings (within the last 6 hours).
+    const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
+    if (Date.now() - createdAt.getTime() > SIX_HOURS_MS) return;
+
+    autoTypeGuessedRef.current.add(meeting.id);
+
+    (async () => {
+      try {
+        const schedules = await invoke<TemplateSchedules>('api_get_template_schedules');
+        const guessId = guessTemplateIdForDate(schedules, createdAt, 10);
+        if (!guessId) return;
+        const guessed = templates.availableTemplates.find(t => t.id === guessId);
+        await handleTemplateSelect(guessId, guessed?.name ?? guessId);
+      } catch (error) {
+        console.error('Auto-guess meeting type failed:', error);
+      }
+    })();
+  }, [
+    meeting.id,
+    meeting.created_at,
+    meetings,
+    templates.availableTemplates,
+    handleTemplateSelect,
+  ]);
 
   // Callback to register the modal open function
   const handleRegisterModalOpen = (openFn: () => void) => {
@@ -184,7 +246,7 @@ export default function PageContent({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="flex flex-col h-screen min-w-0 bg-gray-50"
+      className="flex flex-col h-screen min-w-0 bg-background"
     >
       <div className="flex flex-1 min-w-0 overflow-hidden">
         <MeetingDetailsSplitView
@@ -240,7 +302,9 @@ export default function PageContent({
               getSummaryStatusMessage={summaryGeneration.getSummaryStatusMessage}
               availableTemplates={templates.availableTemplates}
               selectedTemplate={templates.selectedTemplate}
-              onTemplateSelect={templates.handleTemplateSelection}
+              onTemplateSelect={handleTemplateSelect}
+              onCreateCustomType={templates.createCustomType}
+              onDeleteCustomType={templates.deleteCustomType}
               isModelConfigLoading={isModelConfigLoading}
               onOpenModelSettings={handleRegisterModalOpen}
             />

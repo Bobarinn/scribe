@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { ArrowLeft, Settings2, Mic, Database as DatabaseIcon, SparkleIcon, FlaskConical } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { Settings2, Mic, Database as DatabaseIcon, SparkleIcon, FlaskConical, Tag } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { motion } from 'framer-motion';
 import { TranscriptSettings } from '@/components/TranscriptSettings';
@@ -10,6 +9,9 @@ import { RecordingSettings } from '@/components/RecordingSettings';
 import { PreferenceSettings } from '@/components/PreferenceSettings';
 import { SummaryModelSettings } from '@/components/SummaryModelSettings';
 import { BetaSettings } from '@/components/BetaSettings';
+import { MeetingTypeSettings } from '@/components/MeetingTypeSettings';
+// import { MeetingDetectionSettings } from '@/components/MeetingDetectionSettings'; // hidden per request, see below
+import { AppearanceSettings } from '@/components/AppearanceSettings';
 import { useConfig } from '@/contexts/ConfigContext';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
@@ -19,11 +21,11 @@ const TABS = [
   { value: 'recording', label: 'Recordings', icon: Mic },
   { value: 'Transcriptionmodels', label: 'Transcription', icon: DatabaseIcon },
   { value: 'summaryModels', label: 'Summary', icon: SparkleIcon },
+  { value: 'meetingTypes', label: 'Meeting Types', icon: Tag },
   { value: 'beta', label: 'Beta', icon: FlaskConical }
 ] as const;
 
 export default function SettingsPage() {
-  const router = useRouter();
   const { transcriptModelConfig, setTranscriptModelConfig } = useConfig();
 
   // Animation state for tabs
@@ -63,20 +65,11 @@ export default function SettingsPage() {
   }, [activeTab]);
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col">
-      {/* Fixed Header */}
-      <div className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-8 py-6">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.back()}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span>Back</span>
-            </button>
-            <h1 className="text-3xl font-bold">Settings</h1>
-          </div>
+    <div className="h-screen bg-background flex flex-col">
+      {/* Fixed Header - empty space doubles as a Tauri drag region */}
+      <div data-app-drag className="sticky top-0 z-10 bg-background border-b border-border">
+        <div data-app-drag className="max-w-6xl mx-auto pl-14 pr-8 py-6">
+          <h1 className="text-3xl font-bold text-foreground">Settings</h1>
         </div>
       </div>
 
@@ -109,11 +102,17 @@ export default function SettingsPage() {
               />
             </TabsList>
 
-            <TabsContent value="general">
+            <TabsContent value="general" className="space-y-6">
+              <AppearanceSettings />
               <PreferenceSettings />
             </TabsContent>
             <TabsContent value="recording">
               <RecordingSettings />
+              {/* TEMPORARILY HIDDEN per request: automatic call detection toggles
+                  ("Detect started calls" / "Auto-start recording") are hidden from
+                  Settings for now. The component is kept intact — re-enable by
+                  uncommenting the line below. */}
+              {/* <MeetingDetectionSettings /> */}
             </TabsContent>
             <TabsContent value="Transcriptionmodels">
               <TranscriptSettings
@@ -123,6 +122,9 @@ export default function SettingsPage() {
             </TabsContent>
             <TabsContent value="summaryModels">
               <SummaryModelSettings />
+            </TabsContent>
+            <TabsContent value="meetingTypes">
+              <MeetingTypeSettings />
             </TabsContent>
             <TabsContent value="beta" className="mt-6">
               <BetaSettings />

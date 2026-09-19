@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { FileText, Sparkles } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-const STORAGE_KEY = 'meetily.meetingDetails.transcriptPaneRatio';
+const STORAGE_KEY = 'scribe.meetingDetails.transcriptPaneRatio';
 const DEFAULT_RATIO = 0.3;
 const MIN_RATIO = 0.3;
 const MAX_RATIO = 0.5;
@@ -155,11 +155,12 @@ export function MeetingDetailsSplitView({
           aria-valuetext={`Transcript panel ${Math.round(ratio * 100)} percent`}
           aria-label="Resize transcript and summary"
           tabIndex={0}
-          className="group relative z-10 hidden w-2 flex-shrink-0 cursor-col-resize items-stretch justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset md:flex"
+          className="group relative z-10 hidden w-px flex-shrink-0 cursor-col-resize self-stretch bg-border transition-colors duration-150 ease-out hover:bg-primary/60 active:bg-primary focus-visible:outline-none focus-visible:bg-primary md:block"
           onPointerDown={onPointerDown}
           onKeyDown={onSeparatorKeyDown}
         >
-          <div className="h-full w-px bg-gray-200 transition-[width,background-color] duration-150 ease-out group-hover:w-1 group-hover:bg-primary/60 group-active:w-1 group-active:bg-primary" />
+          {/* Invisible wider hit target so the visible line can stay flush (1px) */}
+          <span aria-hidden className="absolute inset-y-0 -left-1.5 -right-1.5" />
         </div>
         <TabsContent
           value="summary"

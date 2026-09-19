@@ -51,9 +51,9 @@ export function TranscriptPanel({
 
   return (
     <div ref={transcriptContainerRef} className="w-full border-r border-gray-200 bg-white flex flex-col overflow-y-auto">
-      {/* Title area - Sticky header */}
-      <div className="sticky top-0 z-10 bg-white p-4 border-gray-200">
-        <div className="flex flex-col space-y-3">
+      {/* Title area - Sticky header (empty space doubles as a Tauri drag region) */}
+      <div data-app-drag className="sticky top-0 z-10 bg-white p-4 pl-12 border-gray-200">
+        <div data-app-drag className="flex flex-col space-y-3">
           <div className="flex  flex-col space-y-2">
             <div className="flex justify-center  items-center space-x-2">
               <ButtonGroup>

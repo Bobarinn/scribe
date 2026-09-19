@@ -18,10 +18,10 @@ export function useUpdateCheck(options: UseUpdateCheckOptions = {}) {
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [isChecking, setIsChecking] = useState(false);
 
-  const checkForUpdates = async (force = false) => {
+  const checkForUpdates = async (force = false): Promise<UpdateInfo | undefined> => {
     // Skip if checked recently (unless forced)
     if (!force && updateService.wasCheckedRecently()) {
-      return;
+      return undefined;
     }
 
     setIsChecking(true);
@@ -38,9 +38,11 @@ export function useUpdateCheck(options: UseUpdateCheckOptions = {}) {
           });
         }
       }
+      return info;
     } catch (error) {
       console.error('Failed to check for updates:', error);
       // Silently fail on startup checks to avoid disrupting user experience
+      throw error;
     } finally {
       setIsChecking(false);
     }
@@ -50,7 +52,10 @@ export function useUpdateCheck(options: UseUpdateCheckOptions = {}) {
     if (checkOnMount) {
       // Delay the check slightly to avoid blocking app startup
       const timer = setTimeout(() => {
-        checkForUpdates(false);
+        // checkForUpdates now rejects on failure (so manual callers can
+        // react to it); swallow it here since this background check should
+        // stay silent and not surface an unhandled rejection on startup.
+        checkForUpdates(false).catch(() => {});
       }, 2000); // Check 2 seconds after mount
 
       return () => clearTimeout(timer);

@@ -31,21 +31,23 @@
 //! # Custom Templates
 //!
 //! Users can add custom templates to:
-//! - macOS: `~/Library/Application Support/Meetily/templates/`
-//! - Windows: `%APPDATA%\Meetily\templates\`
-//! - Linux: `~/.config/Meetily/templates/`
+//! - macOS: `~/Library/Application Support/Scribe/templates/`
+//! - Windows: `%APPDATA%\Scribe\templates\`
+//! - Linux: `~/.config/Scribe/templates/`
 //!
 //! Custom templates must follow the JSON schema defined in `types::Template`.
 
 mod defaults;
 mod loader;
+mod schedules;
 mod types;
 
 // Re-export public API
 pub use loader::{
-    get_template, list_template_ids, list_templates, set_bundled_templates_dir,
-    validate_and_parse_template,
+    create_custom_template, delete_custom_template, get_template, list_custom_template_ids,
+    list_template_ids, list_templates, set_bundled_templates_dir, validate_and_parse_template,
 };
+pub use schedules::{get_template_schedules, set_template_schedule};
 pub use types::{Template, TemplateSection};
 
 #[cfg(test)]

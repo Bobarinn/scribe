@@ -37,14 +37,25 @@ module.exports = {
   			},
   			tertiary: '#64748b',
   			brand: {
+  				// Coral is reserved for the "audio is live" affordance only.
   				coral: '#F9424A',
+  				coralHover: '#E8383F',
   				coralBright: '#FF5A60',
+  				coralTint: '#FFECEC',
+  				coralTintText: '#C4343A',
   				ink: '#17161A',
+  				inkHover: '#26252B',
   				graphite: '#26242B',
   				body: '#EDEDF2',
   				side: '#DCDCE6',
   				wood: '#E7DCC8',
-  				eraser: '#FFE2DF'
+  				// Neutral cool-gray fills (was a coral tint). Kept as `eraser`
+  				// so existing hover/active surfaces are neutralized automatically.
+  				eraser: '#F1F1F3',
+  				fill: '#F1F1F3',
+  				subtle: '#F6F6F8',
+  				hairline: '#E7E7EA',
+  				controlBorder: '#E2E2E6'
   			},
   			card: {
   				DEFAULT: 'hsl(var(--card))',
@@ -78,6 +89,19 @@ module.exports = {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
+  		},
+  		// Cool-neutral shadows (never coral-tinted). Overriding the default scale
+  		// retints existing shadow-sm/DEFAULT/md/lg usages app-wide.
+  		boxShadow: {
+  			sm: '0 1px 2px rgba(18, 19, 23, 0.09)',
+  			DEFAULT: '0 1px 2px rgba(18, 19, 23, 0.09)',
+  			md: '0 4px 12px rgba(18, 19, 23, 0.12), 0 1px 3px rgba(18, 19, 23, 0.1)',
+  			lg: '0 8px 26px rgba(18, 19, 23, 0.16), 0 1px 3px rgba(18, 19, 23, 0.1)',
+  			raised: '0 1px 2px rgba(18, 19, 23, 0.09)',
+  			floating: '0 8px 26px rgba(18, 19, 23, 0.16), 0 1px 3px rgba(18, 19, 23, 0.1)',
+  			window: '0 26px 64px rgba(18, 19, 23, 0.2), 0 1px 3px rgba(18, 19, 23, 0.1)',
+  			// The one coral-tinted exception: the Start Recording affordance.
+  			record: '0 1px 2px rgba(200, 40, 46, 0.3)'
   		},
   		keyframes: {
   			'accordion-down': {

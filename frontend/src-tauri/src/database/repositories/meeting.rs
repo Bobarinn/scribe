@@ -62,7 +62,7 @@ impl MeetingsRepository {
 
         // Get meeting details
         let meeting: Option<MeetingModel> =
-            sqlx::query_as("SELECT id, title, created_at, updated_at, folder_path FROM meetings WHERE id = ?")
+            sqlx::query_as("SELECT id, title, created_at, updated_at, folder_path, meeting_type FROM meetings WHERE id = ?")
                 .bind(meeting_id)
                 .fetch_optional(&mut *transaction)
                 .await?;
@@ -120,12 +120,37 @@ impl MeetingsRepository {
         }
 
         let meeting: Option<MeetingModel> =
-            sqlx::query_as("SELECT id, title, created_at, updated_at, folder_path FROM meetings WHERE id = ?")
+            sqlx::query_as("SELECT id, title, created_at, updated_at, folder_path, meeting_type FROM meetings WHERE id = ?")
                 .bind(meeting_id)
                 .fetch_optional(pool)
                 .await?;
 
         Ok(meeting)
+    }
+
+    /// Update a meeting's category/type label (used for grouping/filtering).
+    /// Pass `None` to clear the type.
+    pub async fn update_meeting_type(
+        pool: &SqlitePool,
+        meeting_id: &str,
+        meeting_type: Option<&str>,
+    ) -> Result<bool, SqlxError> {
+        if meeting_id.trim().is_empty() {
+            return Err(SqlxError::Protocol(
+                "meeting_id cannot be empty".to_string(),
+            ));
+        }
+
+        let now = Utc::now();
+        let rows_affected =
+            sqlx::query("UPDATE meetings SET meeting_type = ?, updated_at = ? WHERE id = ?")
+                .bind(meeting_type)
+                .bind(now)
+                .bind(meeting_id)
+                .execute(pool)
+                .await?;
+
+        Ok(rows_affected.rows_affected() > 0)
     }
 
     /// Get meeting transcripts with pagination support

@@ -266,6 +266,56 @@ impl SettingsRepository {
         Ok(())
     }
 
+    // ===== MEETING DETECTION SETTINGS =====
+
+    /// Get the (enabled, auto_start) toggles for automatic call detection.
+    /// Defaults to (true, false) when no settings row exists yet.
+    pub async fn get_meeting_detection_settings(
+        pool: &SqlitePool,
+    ) -> std::result::Result<(bool, bool), sqlx::Error> {
+        use sqlx::Row;
+
+        let row = sqlx::query(
+            "SELECT meetingDetectionEnabled, meetingDetectionAutoStart FROM settings WHERE id = '1' LIMIT 1",
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        match row {
+            Some(record) => {
+                let enabled: i64 = record.try_get("meetingDetectionEnabled").unwrap_or(1);
+                let auto_start: i64 = record.try_get("meetingDetectionAutoStart").unwrap_or(0);
+                Ok((enabled != 0, auto_start != 0))
+            }
+            None => Ok((true, false)),
+        }
+    }
+
+    /// Save the call-detection toggles, creating the settings row if needed.
+    pub async fn save_meeting_detection_settings(
+        pool: &SqlitePool,
+        enabled: bool,
+        auto_start: bool,
+    ) -> std::result::Result<(), sqlx::Error> {
+        let enabled_i = i64::from(enabled);
+        let auto_start_i = i64::from(auto_start);
+        sqlx::query(
+            r#"
+            INSERT INTO settings (id, provider, model, whisperModel, meetingDetectionEnabled, meetingDetectionAutoStart)
+            VALUES ('1', 'ollama', '', 'large-v3', $1, $2)
+            ON CONFLICT(id) DO UPDATE SET
+                meetingDetectionEnabled = excluded.meetingDetectionEnabled,
+                meetingDetectionAutoStart = excluded.meetingDetectionAutoStart
+            "#,
+        )
+        .bind(enabled_i)
+        .bind(auto_start_i)
+        .execute(pool)
+        .await?;
+
+        Ok(())
+    }
+
     // ===== CUSTOM OPENAI CONFIG METHODS =====
 
     /// Gets the custom OpenAI configuration from JSON

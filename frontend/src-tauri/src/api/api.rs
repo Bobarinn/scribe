@@ -30,6 +30,12 @@ pub struct ApiResponse<T> {
 pub struct Meeting {
     pub id: String,
     pub title: String,
+    #[serde(rename = "createdAt")]
+    pub created_at: String,
+    #[serde(rename = "updatedAt")]
+    pub updated_at: String,
+    #[serde(rename = "meetingType")]
+    pub meeting_type: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -341,6 +347,9 @@ pub async fn api_get_meetings<R: Runtime>(
                 .map(|m| Meeting {
                     id: m.id,
                     title: m.title,
+                    created_at: m.created_at.0.to_rfc3339(),
+                    updated_at: m.updated_at.0.to_rfc3339(),
+                    meeting_type: m.meeting_type,
                 })
                 .collect();
             Ok(result)
@@ -740,6 +749,58 @@ pub async fn api_delete_api_key<R: Runtime>(
     }
 }
 
+/// Toggles for automatic call detection, persisted in the settings table.
+#[derive(serde::Serialize)]
+pub struct MeetingDetectionSettings {
+    pub enabled: bool,
+    #[serde(rename = "autoStart")]
+    pub auto_start: bool,
+}
+
+#[tauri::command]
+pub async fn api_get_meeting_detection_settings<R: Runtime>(
+    _app: AppHandle<R>,
+    state: tauri::State<'_, AppState>,
+    _auth_token: Option<String>,
+) -> Result<MeetingDetectionSettings, String> {
+    log_info!("api_get_meeting_detection_settings called (native)");
+    match SettingsRepository::get_meeting_detection_settings(state.db_manager.pool()).await {
+        Ok((enabled, auto_start)) => Ok(MeetingDetectionSettings { enabled, auto_start }),
+        Err(e) => {
+            log_error!("Failed to get meeting detection settings: {}", e);
+            Err(e.to_string())
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn api_save_meeting_detection_settings<R: Runtime>(
+    _app: AppHandle<R>,
+    state: tauri::State<'_, AppState>,
+    enabled: bool,
+    auto_start: bool,
+    _auth_token: Option<String>,
+) -> Result<(), String> {
+    log_info!(
+        "api_save_meeting_detection_settings called (native): enabled={}, auto_start={}",
+        enabled,
+        auto_start
+    );
+    match SettingsRepository::save_meeting_detection_settings(
+        state.db_manager.pool(),
+        enabled,
+        auto_start,
+    )
+    .await
+    {
+        Ok(()) => Ok(()),
+        Err(e) => {
+            log_error!("Failed to save meeting detection settings: {}", e);
+            Err(e.to_string())
+        }
+    }
+}
+
 #[tauri::command]
 pub async fn api_delete_meeting<R: Runtime>(
     _app: AppHandle<R>,
@@ -922,6 +983,42 @@ pub async fn api_save_meeting_title<R: Runtime>(
         Err(e) => {
             log_error!("Failed to update meeting {}", e);
             Err(format!("Failed to update meeting: {}", e))
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn api_set_meeting_type<R: Runtime>(
+    _app: AppHandle<R>,
+    state: tauri::State<'_, AppState>,
+    meeting_id: String,
+    meeting_type: Option<String>,
+    auth_token: Option<String>,
+) -> Result<serde_json::Value, String> {
+    log_info!(
+        "api_set_meeting_type called for meeting_id: {}, meeting_type: {:?}, auth_token: {}",
+        meeting_id,
+        meeting_type,
+        auth_token.is_some()
+    );
+    let pool = state.db_manager.pool();
+    // Treat empty string as clearing the type.
+    let normalized = meeting_type
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
+    match MeetingsRepository::update_meeting_type(pool, &meeting_id, normalized).await {
+        Ok(true) => {
+            log_info!("Successfully updated meeting type");
+            Ok(serde_json::json!({"message": "Meeting type updated successfully"}))
+        }
+        Ok(false) => {
+            log_error!("No meeting found with id {}", meeting_id);
+            Err(format!("No meeting found with id {}", meeting_id))
+        }
+        Err(e) => {
+            log_error!("Failed to update meeting type {}", e);
+            Err(format!("Failed to update meeting type: {}", e))
         }
     }
 }

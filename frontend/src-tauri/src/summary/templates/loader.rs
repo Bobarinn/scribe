@@ -19,12 +19,12 @@ pub fn set_bundled_templates_dir(path: PathBuf) {
 /// Get the user's custom templates directory path
 ///
 /// Returns the platform-specific application data directory for custom templates:
-/// - macOS: ~/Library/Application Support/Meetily/templates/
-/// - Windows: %APPDATA%\Meetily\templates\
-/// - Linux: ~/.config/Meetily/templates/
+/// - macOS: ~/Library/Application Support/Scribe/templates/
+/// - Windows: %APPDATA%\Scribe\templates\
+/// - Linux: ~/.config/Scribe/templates/
 fn get_custom_templates_dir() -> Option<PathBuf> {
     let mut path = dirs::data_dir()?;
-    path.push("Meetily");
+    path.push("Scribe");
     path.push("templates");
     Some(path)
 }
@@ -195,6 +195,111 @@ pub fn list_template_ids() -> Vec<String> {
 
     ids.sort();
     ids
+}
+
+/// List the ids of user-created custom templates (files present in the custom
+/// templates directory). These are the only templates that can be deleted.
+pub fn list_custom_template_ids() -> Vec<String> {
+    let mut ids = Vec::new();
+    if let Some(custom_dir) = get_custom_templates_dir() {
+        if custom_dir.exists() {
+            if let Ok(entries) = std::fs::read_dir(&custom_dir) {
+                for entry in entries.flatten() {
+                    if let Some(filename) = entry.file_name().to_str() {
+                        if filename.ends_with(".json") {
+                            ids.push(filename.trim_end_matches(".json").to_string());
+                        }
+                    }
+                }
+            }
+        }
+    }
+    ids
+}
+
+/// Convert a human-readable name into a filesystem/id-safe slug.
+fn slugify(name: &str) -> String {
+    let slug: String = name
+        .trim()
+        .to_lowercase()
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
+        .collect();
+    // Collapse consecutive underscores and trim leading/trailing ones.
+    let collapsed: String = slug.split('_').filter(|s| !s.is_empty()).collect::<Vec<_>>().join("_");
+    if collapsed.is_empty() {
+        "custom_type".to_string()
+    } else {
+        collapsed
+    }
+}
+
+/// Create a new custom meeting type.
+///
+/// A custom type is stored as a template JSON file in the user's custom templates
+/// directory. To avoid forcing the user to author sections, it reuses the
+/// `standard_meeting` section structure. Returns the generated template id.
+pub fn create_custom_template(name: &str) -> Result<String, String> {
+    let name = name.trim();
+    if name.is_empty() {
+        return Err("Type name cannot be empty".to_string());
+    }
+
+    let custom_dir = get_custom_templates_dir()
+        .ok_or_else(|| "Could not resolve custom templates directory".to_string())?;
+    std::fs::create_dir_all(&custom_dir)
+        .map_err(|e| format!("Failed to create templates directory: {}", e))?;
+
+    // Ensure the generated id is unique across ALL known template ids.
+    let base_id = slugify(name);
+    let existing = list_template_ids();
+    let mut id = base_id.clone();
+    let mut counter = 2;
+    while existing.contains(&id) {
+        id = format!("{}_{}", base_id, counter);
+        counter += 1;
+    }
+
+    // Reuse the standard_meeting sections so custom types map to the standard
+    // summary format (per product decision).
+    let base_template = get_template("standard_meeting")
+        .or_else(|_| get_template("daily_standup"))?;
+
+    let template = Template {
+        name: name.to_string(),
+        description: format!("Custom meeting type: {}", name),
+        sections: base_template.sections,
+    };
+
+    template.validate()?;
+
+    let json = serde_json::to_string_pretty(&template)
+        .map_err(|e| format!("Failed to serialize template: {}", e))?;
+
+    let path = custom_dir.join(format!("{}.json", id));
+    std::fs::write(&path, json)
+        .map_err(|e| format!("Failed to write template file: {}", e))?;
+
+    info!("Created custom meeting type '{}' ({}) at {:?}", name, id, path);
+    Ok(id)
+}
+
+/// Delete a custom meeting type. Only templates that live in the user's custom
+/// templates directory can be deleted (built-in and bundled templates cannot).
+pub fn delete_custom_template(template_id: &str) -> Result<(), String> {
+    let custom_dir = get_custom_templates_dir()
+        .ok_or_else(|| "Could not resolve custom templates directory".to_string())?;
+    let path = custom_dir.join(format!("{}.json", template_id));
+    if !path.exists() {
+        return Err(format!(
+            "'{}' is not a custom type and cannot be deleted",
+            template_id
+        ));
+    }
+    std::fs::remove_file(&path)
+        .map_err(|e| format!("Failed to delete template file: {}", e))?;
+    info!("Deleted custom meeting type '{}'", template_id);
+    Ok(())
 }
 
 /// List all available templates with their metadata

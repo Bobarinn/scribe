@@ -48,9 +48,11 @@ interface SummaryPanelProps {
   summaryError: string | null;
   onRegenerateSummary: () => Promise<void>;
   getSummaryStatusMessage: (status: 'idle' | 'processing' | 'summarizing' | 'regenerating' | 'completed' | 'error') => string;
-  availableTemplates: Array<{ id: string, name: string, description: string }>;
+  availableTemplates: Array<{ id: string, name: string, description: string, isCustom?: boolean }>;
   selectedTemplate: string;
   onTemplateSelect: (templateId: string, templateName: string) => void;
+  onCreateCustomType?: (name: string) => Promise<string | null>;
+  onDeleteCustomType?: (templateId: string) => Promise<boolean>;
   isModelConfigLoading?: boolean;
   onOpenModelSettings?: (openFn: () => void) => void;
 }
@@ -81,6 +83,8 @@ export function SummaryPanel({
   availableTemplates,
   selectedTemplate,
   onTemplateSelect,
+  onCreateCustomType,
+  onDeleteCustomType,
   isModelConfigLoading = false,
   onOpenModelSettings,
 }: SummaryPanelProps) {
@@ -242,9 +246,11 @@ export function SummaryPanel({
 
   return (
     <div className="flex-1 min-w-0 flex flex-col bg-white overflow-hidden h-full w-full @container">
-      {/* Top-level actions — always visible, same pattern as TranscriptPanel */}
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center justify-center w-full min-w-0 gap-2 flex-wrap">
+      {/* Top-level actions — always visible, same pattern as TranscriptPanel.
+          The empty space doubles as a window drag handle (Tauri drag region);
+          buttons stay clickable. */}
+      <div data-app-drag className="p-4 border-b border-gray-200">
+        <div data-app-drag className="flex items-center justify-center w-full min-w-0 gap-2 flex-wrap">
           <div className="flex-shrink-0 min-w-0">
             <SummaryGeneratorButtonGroup
               modelConfig={modelConfig}
@@ -257,6 +263,8 @@ export function SummaryPanel({
               availableTemplates={availableTemplates}
               selectedTemplate={selectedTemplate}
               onTemplateSelect={onTemplateSelect}
+              onCreateCustomType={onCreateCustomType}
+              onDeleteCustomType={onDeleteCustomType}
               hasTranscripts={transcripts.length > 0}
               hasSummary={hasSummary}
               isModelConfigLoading={isModelConfigLoading}
@@ -313,9 +321,13 @@ export function SummaryPanel({
               }}
             />
           </div>
-          {summaryStatus !== 'idle' && (
+          {/*
+            Success is signalled by the rendered summary itself, so we no longer
+            show a persistent green "completed" banner. We keep inline feedback
+            only for in-progress states and (actionable) errors.
+          */}
+          {summaryStatus !== 'idle' && summaryStatus !== 'completed' && (
             <div className={`mt-4 p-4 rounded-lg ${summaryStatus === 'error' ? 'bg-red-100 text-red-700' :
-              summaryStatus === 'completed' ? 'bg-green-100 text-green-700' :
                 'bg-brand-eraser text-primary'
               }`}>
               <p className="text-sm font-medium">{getSummaryStatusMessage(summaryStatus)}</p>

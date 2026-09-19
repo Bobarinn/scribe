@@ -84,7 +84,10 @@ impl Template {
     /// Generates section-specific instructions for the LLM
     pub fn to_section_instructions(&self) -> String {
         let mut instructions = String::from(
-            "- **For the main title (`# [AI-Generated Title]`):** Analyze the entire transcript and create a concise, descriptive title for the meeting.\n"
+            "- **For the main title (`# [AI-Generated Title]`):** Analyze the entire transcript and write a SHORT, specific title that captures what the meeting was actually about — not a generic label.\n\
+             - Keep it concise: aim for about 3-8 words, ideally under 60 characters. Never write a full sentence or add a trailing period.\n\
+             - Prefer the pattern `Meeting type: key topic` when a clear focus exists. Good examples: `Daily Standup: Projects moving forward`, `Sales call with JP: New demand from client`, `Sprint Planning: Q3 roadmap`, `1:1 with Sarah: Career growth`. A short bare label like `Product All-Hands` or `Retro` is fine when there is no single dominant topic.\n\
+             - Use concrete names, projects, or decisions from the transcript when they help; avoid filler like `Discussion about` or `Meeting regarding`.\n"
         );
 
         for section in &self.sections {

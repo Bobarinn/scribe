@@ -45,6 +45,10 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env
 
+# Tauri updater signing keypair - the private key must never be committed
+src-tauri/*.key
+src-tauri/*.key.pub
+
 # vercel
 .vercel
 

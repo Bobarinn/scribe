@@ -19,10 +19,13 @@ import { OnboardingProvider } from '@/contexts/OnboardingContext'
 import { OnboardingFlow } from '@/components/onboarding'
 import { loadBetaFeatures } from '@/types/betaFeatures'
 import { DownloadProgressToastProvider } from '@/components/shared/DownloadProgressToast'
+import { CallDetectionPrompt } from '@/components/CallDetectionPrompt'
 import { UpdateCheckProvider } from '@/components/UpdateCheckProvider'
 import { RecordingPostProcessingProvider } from '@/contexts/RecordingPostProcessingProvider'
 import { ImportAudioDialog, ImportDropOverlay } from '@/components/ImportAudio'
 import { ImportDialogProvider } from '@/contexts/ImportDialogContext'
+import { ThemeProvider } from '@/components/ThemeProvider'
+import { WindowDragHandler } from '@/components/WindowDragHandler'
 import { isAudioExtension, getAudioFormatsDisplayList } from '@/constants/audioFormats'
 
 
@@ -242,8 +245,16 @@ export default function RootLayout({
   }
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${figtree.variable} ${outfit.variable} ${sourceSans3.variable} font-sans antialiased`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+        {/* Reliable window dragging from custom titlebar/header drag regions */}
+        <WindowDragHandler />
         <RecordingStateProvider>
           <TranscriptProvider>
             <ConfigProvider>
@@ -256,6 +267,9 @@ export default function RootLayout({
                           <ImportDialogProvider onOpen={handleOpenImportDialog}>
                             {/* Download progress toast provider - listens for background downloads */}
                             <DownloadProgressToastProvider />
+
+                            {/* Bottom-right prompt when a call app is detected */}
+                            <CallDetectionPrompt />
 
                             {/* Show onboarding or main app */}
                             {showOnboarding ? (
@@ -284,6 +298,7 @@ export default function RootLayout({
             </ConfigProvider>
           </TranscriptProvider>
         </RecordingStateProvider>
+        </ThemeProvider>
 
         <Toaster position="bottom-center" richColors closeButton />
       </body>

@@ -35,7 +35,7 @@ export function TranscriptButtonGroup({
   }, [onRefetchTranscripts]);
 
   return (
-    <div className="flex items-center justify-center w-full gap-2">
+    <div data-app-drag className="flex items-center justify-center w-full gap-2">
       <ButtonGroup>
         <Button
           variant="outline"
@@ -68,7 +68,7 @@ export function TranscriptButtonGroup({
           <Button
             size="sm"
             variant="outline"
-            className="bg-gradient-to-r from-brand-eraser to-brand-body hover:from-brand-eraser hover:to-brand-side border-primary/25 px-2 @[22rem]:px-4"
+            className="bg-gradient-to-r from-brand-eraser to-brand-body hover:from-brand-eraser hover:to-brand-side border-brand-coral/30 shadow-[0_1px_10px_rgba(249,66,74,0.22)] hover:shadow-[0_2px_16px_rgba(249,66,74,0.32)] transition-shadow px-2 @[22rem]:px-4"
             onClick={() => {
               setShowRetranscribeDialog(true);
             }}

@@ -66,8 +66,10 @@ export function TranscriptPanel({
 
   return (
     <div className="flex h-full min-w-0 w-full bg-white flex-col relative @container">
-      {/* Title area */}
-      <div className="p-4 border-b border-gray-200">
+      {/* Title area. The empty space doubles as a window drag handle (Tauri
+          drag region). The sidebar collapse toggle floats over the left via
+          MainContent, so we pad the left to keep the buttons clear of it. */}
+      <div data-app-drag className="p-4 pl-12 border-b border-gray-200">
         <TranscriptButtonGroup
           transcriptCount={usePagination ? (totalCount ?? convertedSegments.length) : (transcripts?.length || 0)}
           onCopyTranscript={onCopyTranscript}

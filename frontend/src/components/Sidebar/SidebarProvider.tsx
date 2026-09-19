@@ -11,11 +11,16 @@ interface SidebarItem {
   title: string;
   type: 'folder' | 'file';
   children?: SidebarItem[];
+  createdAt?: string;
+  meetingType?: string | null;
 }
 
 export interface CurrentMeeting {
   id: string;
   title: string;
+  createdAt?: string;
+  updatedAt?: string;
+  meetingType?: string | null;
 }
 
 // Search result type for transcript search
@@ -94,10 +99,13 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const fetchMeetings = React.useCallback(async () => {
     if (serverAddress) {
       try {
-        const meetings = await invoke('api_get_meetings') as Array<{ id: string, title: string }>;
+        const meetings = await invoke('api_get_meetings') as Array<{ id: string, title: string, createdAt?: string, updatedAt?: string, meetingType?: string | null }>;
         const transformedMeetings = meetings.map((meeting: any) => ({
           id: meeting.id,
-          title: meeting.title
+          title: meeting.title,
+          createdAt: meeting.createdAt,
+          updatedAt: meeting.updatedAt,
+          meetingType: meeting.meetingType ?? null,
         }));
         setMeetings(transformedMeetings);
       } catch (error) {
@@ -125,7 +133,13 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
       title: 'Meeting Notes',
       type: 'folder' as const,
       children: [
-        ...meetings.map(meeting => ({ id: meeting.id, title: meeting.title, type: 'file' as const }))
+        ...meetings.map(meeting => ({
+          id: meeting.id,
+          title: meeting.title,
+          type: 'file' as const,
+          createdAt: meeting.createdAt,
+          meetingType: meeting.meetingType,
+        }))
       ]
     },
   ];
@@ -134,10 +148,15 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
     setIsCollapsed(!isCollapsed);
   };
 
-  // Update current meeting when on home page
+  // Update current meeting when on home page. On the "All Meetings" list page
+  // no single meeting is open, so clear the selection — otherwise whichever
+  // meeting was last viewed (usually the newest, i.e. first in the list)
+  // keeps showing as active even though nothing is actually open there.
   useEffect(() => {
     if (pathname === '/') {
       setCurrentMeeting({ id: 'intro-call', title: '+ New Call' });
+    } else if (pathname === '/meetings') {
+      setCurrentMeeting(null);
     }
     setSidebarItems(baseItems);
   }, [pathname]);

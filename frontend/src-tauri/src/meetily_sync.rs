@@ -197,12 +197,39 @@ async fn do_import<R: Runtime>(
         .into_iter()
         .collect();
 
-    let source_meetings: Vec<SourceMeeting> = sqlx::query_as(
-        "SELECT id, title, created_at, updated_at, folder_path, meeting_type FROM meetings",
-    )
-    .fetch_all(&source_pool)
-    .await
-    .map_err(|e| format!("Failed to read Meetily meetings: {}", e))?;
+    // `folder_path` and `meeting_type` were both added to the meetings table
+    // after this fork's schema snapshot - the real Meetily app may predate
+    // either. Only select columns the source actually has, and default the
+    // rest to None rather than failing the whole import outright.
+    let source_meeting_columns = get_table_columns(&source_pool, "meetings").await?;
+    let has_folder_path = source_meeting_columns.contains("folder_path");
+    let has_meeting_type = source_meeting_columns.contains("meeting_type");
+
+    let mut select_columns = vec!["id", "title", "created_at", "updated_at"];
+    if has_folder_path {
+        select_columns.push("folder_path");
+    }
+    if has_meeting_type {
+        select_columns.push("meeting_type");
+    }
+
+    let rows = sqlx::query(&format!("SELECT {} FROM meetings", select_columns.join(", ")))
+        .fetch_all(&source_pool)
+        .await
+        .map_err(|e| format!("Failed to read Meetily meetings: {}", e))?;
+
+    use sqlx::Row;
+    let source_meetings: Vec<SourceMeeting> = rows
+        .iter()
+        .map(|row| SourceMeeting {
+            id: row.get("id"),
+            title: row.get("title"),
+            created_at: row.get("created_at"),
+            updated_at: row.get("updated_at"),
+            folder_path: if has_folder_path { row.get("folder_path") } else { None },
+            meeting_type: if has_meeting_type { row.get("meeting_type") } else { None },
+        })
+        .collect();
 
     let new_meetings: Vec<&SourceMeeting> = source_meetings
         .iter()
@@ -355,6 +382,19 @@ async fn copy_dependent_tables(
     let _ = sqlx::query("DETACH DATABASE legacy").execute(&mut *conn).await;
 
     result
+}
+
+/// Column names present in `table` on the given pool, as a set (via
+/// `PRAGMA table_info`). Used to detect schema drift between this fork's
+/// database and whatever a real Meetily install actually has.
+async fn get_table_columns(pool: &SqlitePool, table: &str) -> Result<HashSet<String>, String> {
+    let rows = sqlx::query(&format!("PRAGMA table_info({table})"))
+        .fetch_all(pool)
+        .await
+        .map_err(|e| format!("Failed to read schema for {}: {}", table, e))?;
+
+    use sqlx::Row;
+    Ok(rows.iter().map(|row| row.get::<String, _>("name")).collect())
 }
 
 /// Column names for `schema.table`, in table-definition order (via

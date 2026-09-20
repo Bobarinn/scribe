@@ -198,11 +198,11 @@ jobs:
 
       # Windows signing setup
       - name: Setup DigiCert KeyLocker
-        if: contains(matrix.platform, 'windows') && github.event.inputs.sign-build == 'true'
+        if: contains(matrix.platform, 'windows') && github.event.inputs.sign-build == 'true' && secrets.SM_API_KEY != ''
         uses: digicert/ssm-code-signing@v1.1.1
 
       - name: Setup DigiCert Environment
-        if: contains(matrix.platform, 'windows') && github.event.inputs.sign-build == 'true'
+        if: contains(matrix.platform, 'windows') && github.event.inputs.sign-build == 'true' && secrets.SM_API_KEY != ''
         shell: pwsh
         run: |
           # Set environment variables
@@ -245,7 +245,7 @@ jobs:
           "SM_CLIENT_CERT_FILE=D:\Certificate_pkcs12.p12" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Verify DigiCert Setup
-        if: contains(matrix.platform, 'windows') && github.event.inputs.sign-build == 'true'
+        if: contains(matrix.platform, 'windows') && github.event.inputs.sign-build == 'true' && secrets.SM_API_KEY != ''
         shell: pwsh
         run: |
           smctl --version
@@ -253,7 +253,7 @@ jobs:
           smctl healthcheck
 
       - name: Sync Certificate to Windows Certificate Store
-        if: contains(matrix.platform, 'windows') && github.event.inputs.sign-build == 'true'
+        if: contains(matrix.platform, 'windows') && github.event.inputs.sign-build == 'true' && secrets.SM_API_KEY != ''
         shell: pwsh
         run: |
           Write-Host "============================================================"
@@ -487,7 +487,7 @@ jobs:
           fi
 
       - name: Verify code signing (Windows)
-        if: contains(matrix.platform, 'windows') && github.event.inputs.sign-build == 'true'
+        if: contains(matrix.platform, 'windows') && github.event.inputs.sign-build == 'true' && secrets.SM_API_KEY != ''
         shell: pwsh
         run: |
           $msiPath = Get-ChildItem -Path "target/x86_64-pc-windows-msvc/release/bundle/msi" -Filter "*.msi" | Select-Object -First 1 -ExpandProperty FullName

@@ -10,7 +10,7 @@
 
 use log::{info, warn};
 use serde::Serialize;
-use sqlx::sqlite::SqlitePoolOptions;
+use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use sqlx::SqlitePool;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
@@ -39,10 +39,13 @@ fn find_meetily_db() -> Option<PathBuf> {
 }
 
 async fn connect_readonly(path: &str) -> Result<SqlitePool, String> {
-    let url = format!("sqlite://{}?mode=ro", path);
+    // Build options from a bare filesystem path rather than a `sqlite://` URL
+    // string - macOS app-data paths routinely contain spaces (e.g.
+    // "Application Support"), which a hand-built URL would mangle.
+    let options = SqliteConnectOptions::new().filename(path).read_only(true);
     SqlitePoolOptions::new()
         .max_connections(1)
-        .connect(&url)
+        .connect_with(options)
         .await
         .map_err(|e| format!("Failed to open Meetily database: {}", e))
 }
@@ -99,6 +102,51 @@ async fn scan_meetily_db<R: Runtime>(
     })
 }
 
+/// Quietly check for an existing Meetily installation and import its
+/// meetings, exactly once per install - no UI, nothing surfaced to the user
+/// either way. Safe to call unconditionally on every app startup: after the
+/// first attempt (success, failure, or nothing found) it writes a marker
+/// file and every later call becomes a no-op.
+#[tauri::command]
+pub async fn attempt_quiet_meetily_import<R: Runtime>(app: AppHandle<R>) -> Result<(), String> {
+    let Ok(app_data_dir) = app.path().app_data_dir() else {
+        return Ok(());
+    };
+    let marker_path = app_data_dir.join(".meetily_import_attempted");
+    if marker_path.exists() {
+        return Ok(());
+    }
+
+    // Write the marker first so a crash or an error below still counts as
+    // "attempted" - this is a best-effort, one-shot convenience, not
+    // something that should retry indefinitely.
+    if let Some(parent) = marker_path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    let _ = std::fs::write(&marker_path, "");
+
+    let Some(db_path) = find_meetily_db() else {
+        info!("Quiet Meetily import: no existing Meetily installation found");
+        return Ok(());
+    };
+
+    match scan_meetily_db(&app, &db_path).await {
+        Ok(detection) if detection.new_meetings > 0 => {
+            match do_import(&app, &detection.db_path).await {
+                Ok(result) => info!(
+                    "Quiet Meetily import complete: {} imported, {} skipped, {} audio copied, {} audio missing",
+                    result.imported_meetings, result.skipped_existing, result.audio_copied, result.audio_missing
+                ),
+                Err(e) => warn!("Quiet Meetily import failed: {}", e),
+            }
+        }
+        Ok(_) => info!("Quiet Meetily import: found Meetily but nothing new to import"),
+        Err(e) => warn!("Quiet Meetily import: failed to inspect Meetily database: {}", e),
+    }
+
+    Ok(())
+}
+
 /// Let the user point at a Meetily database directly, for machines where
 /// auto-detection doesn't find it (custom install, restored backup, etc).
 #[tauri::command]
@@ -142,6 +190,13 @@ struct SourceMeeting {
 pub async fn import_meetily_data<R: Runtime>(
     app: AppHandle<R>,
     db_path: String,
+) -> Result<MeetilyImportResult, String> {
+    do_import(&app, &db_path).await
+}
+
+async fn do_import<R: Runtime>(
+    app: &AppHandle<R>,
+    db_path: &str,
 ) -> Result<MeetilyImportResult, String> {
     let source_pool = connect_readonly(&db_path).await?;
 

@@ -802,6 +802,7 @@ pub fn run() {
             meetily_sync::check_for_meetily_data,
             meetily_sync::select_meetily_database_path,
             meetily_sync::import_meetily_data,
+            meetily_sync::attempt_quiet_meetily_import,
             // Database and Models path commands
             database::commands::get_database_directory,
             database::commands::open_database_folder,

@@ -110,6 +110,14 @@ export default function RootLayout({
         setShowOnboarding(true)
         setOnboardingCompleted(false)
       })
+
+    // Quietly check for an existing Meetily installation on this machine and
+    // import its meetings once - no UI, nothing surfaced either way. The
+    // Rust side tracks whether this has already been attempted, so this is
+    // safe to call unconditionally on every launch.
+    invoke('attempt_quiet_meetily_import').catch((error) => {
+      console.error('[Layout] Quiet Meetily import failed (non-fatal):', error)
+    })
   }, [])
 
   // Disable context menu in production

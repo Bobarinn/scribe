@@ -311,30 +311,66 @@ async fn copy_dependent_tables(
 
     let placeholders = meeting_ids.iter().map(|_| "?").collect::<Vec<_>>().join(",");
 
-    for table in ["transcripts", "summary_processes", "transcript_chunks", "meeting_notes"] {
-        let sql = format!(
-            "INSERT OR IGNORE INTO {table} SELECT * FROM legacy.{table} WHERE meeting_id IN ({placeholders})"
-        );
-        let mut query = sqlx::query(&sql);
-        for id in meeting_ids {
-            query = query.bind(id);
-        }
-        let result = query.execute(&mut *conn).await;
+    let result: Result<(), String> = async {
+        for table in ["transcripts", "summary_processes", "transcript_chunks", "meeting_notes"] {
+            // Don't assume the two databases have byte-identical schemas -
+            // Meetily may have shipped column changes since this fork's
+            // schema snapshot. Only copy columns both sides actually have,
+            // rather than a blind `SELECT *` that breaks on any drift.
+            let dest_columns = table_columns(&mut conn, "main", table).await?;
+            let source_columns = table_columns(&mut conn, "legacy", table).await?;
+            let common_columns: Vec<&String> = dest_columns
+                .iter()
+                .filter(|c| source_columns.contains(*c))
+                .collect();
 
-        // Detach before propagating any error so we don't leak the attachment
-        // on the pooled connection.
-        if let Err(e) = result {
-            let _ = sqlx::query("DETACH DATABASE legacy").execute(&mut *conn).await;
-            return Err(format!("Failed to copy {} rows: {}", table, e));
+            if common_columns.is_empty() {
+                warn!("No common columns for {} between Scribe and Meetily schemas, skipping", table);
+                continue;
+            }
+
+            let column_list = common_columns
+                .iter()
+                .map(|c| c.as_str())
+                .collect::<Vec<_>>()
+                .join(", ");
+            let sql = format!(
+                "INSERT OR IGNORE INTO {table} ({column_list}) \
+                 SELECT {column_list} FROM legacy.{table} WHERE meeting_id IN ({placeholders})"
+            );
+            let mut query = sqlx::query(&sql);
+            for id in meeting_ids {
+                query = query.bind(id);
+            }
+            query
+                .execute(&mut *conn)
+                .await
+                .map_err(|e| format!("Failed to copy {} rows: {}", table, e))?;
         }
+        Ok(())
     }
+    .await;
 
-    sqlx::query("DETACH DATABASE legacy")
-        .execute(&mut *conn)
+    // Always detach, regardless of whether copying succeeded.
+    let _ = sqlx::query("DETACH DATABASE legacy").execute(&mut *conn).await;
+
+    result
+}
+
+/// Column names for `schema.table`, in table-definition order (via
+/// `PRAGMA <schema>.table_info`).
+async fn table_columns(
+    conn: &mut sqlx::pool::PoolConnection<sqlx::Sqlite>,
+    schema: &str,
+    table: &str,
+) -> Result<Vec<String>, String> {
+    let rows = sqlx::query(&format!("PRAGMA {schema}.table_info({table})"))
+        .fetch_all(&mut **conn)
         .await
-        .map_err(|e| format!("Failed to detach Meetily database: {}", e))?;
+        .map_err(|e| format!("Failed to read schema for {}.{}: {}", schema, table, e))?;
 
-    Ok(())
+    use sqlx::Row;
+    Ok(rows.iter().map(|row| row.get::<String, _>("name")).collect())
 }
 
 fn copy_recording_folder(source_dir: &Path, dest_root: &Path) -> std::io::Result<PathBuf> {

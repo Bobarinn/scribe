@@ -41,7 +41,11 @@ export function MeetilyQuickSync() {
       await refetchMeetings();
     } catch (error) {
       console.error('Meetily sync failed:', error);
-      toast.error('Meetily sync failed - see console for details.');
+      const message = error instanceof Error ? error.message : String(error);
+      // Tauri commands that return Err(String) surface here as a plain
+      // string, not an Error - show it directly since production builds
+      // don't ship devtools, so "check the console" isn't actionable there.
+      toast.error(`Meetily sync failed: ${message}`, { duration: 15000 });
     } finally {
       setIsSyncing(false);
     }

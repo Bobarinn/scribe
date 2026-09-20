@@ -102,29 +102,14 @@ async fn scan_meetily_db<R: Runtime>(
     })
 }
 
-/// Quietly check for an existing Meetily installation and import its
-/// meetings, exactly once per install - no UI, nothing surfaced to the user
-/// either way. Safe to call unconditionally on every app startup: after the
-/// first attempt (success, failure, or nothing found) it writes a marker
-/// file and every later call becomes a no-op.
+/// Quietly check for an existing Meetily installation and import anything
+/// new - no UI, nothing surfaced to the user either way. Safe (and meant) to
+/// call unconditionally on every app startup: the meeting-id dedup in
+/// `do_import` already tells us whether we're caught up, so there's no
+/// separate "already ran" marker - each launch re-checks for anything added
+/// to Meetily since the last check and pulls in only that.
 #[tauri::command]
 pub async fn attempt_quiet_meetily_import<R: Runtime>(app: AppHandle<R>) -> Result<(), String> {
-    let Ok(app_data_dir) = app.path().app_data_dir() else {
-        return Ok(());
-    };
-    let marker_path = app_data_dir.join(".meetily_import_attempted");
-    if marker_path.exists() {
-        return Ok(());
-    }
-
-    // Write the marker first so a crash or an error below still counts as
-    // "attempted" - this is a best-effort, one-shot convenience, not
-    // something that should retry indefinitely.
-    if let Some(parent) = marker_path.parent() {
-        let _ = std::fs::create_dir_all(parent);
-    }
-    let _ = std::fs::write(&marker_path, "");
-
     let Some(db_path) = find_meetily_db() else {
         info!("Quiet Meetily import: no existing Meetily installation found");
         return Ok(());

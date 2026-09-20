@@ -12,6 +12,7 @@ import { BetaSettings } from '@/components/BetaSettings';
 import { MeetingTypeSettings } from '@/components/MeetingTypeSettings';
 // import { MeetingDetectionSettings } from '@/components/MeetingDetectionSettings'; // hidden per request, see below
 import { AppearanceSettings } from '@/components/AppearanceSettings';
+import { MeetilyQuickSync } from '@/components/MeetilyQuickSync';
 import { useConfig } from '@/contexts/ConfigContext';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
@@ -108,6 +109,9 @@ export default function SettingsPage() {
             </TabsContent>
             <TabsContent value="recording" className="space-y-6">
               <RecordingSettings />
+              <div className="flex justify-end">
+                <MeetilyQuickSync />
+              </div>
               {/* TEMPORARILY HIDDEN per request: automatic call detection toggles
                   ("Detect started calls" / "Auto-start recording") are hidden from
                   Settings for now. The component is kept intact — re-enable by

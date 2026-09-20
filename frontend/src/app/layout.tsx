@@ -112,9 +112,9 @@ export default function RootLayout({
       })
 
     // Quietly check for an existing Meetily installation on this machine and
-    // import its meetings once - no UI, nothing surfaced either way. The
-    // Rust side tracks whether this has already been attempted, so this is
-    // safe to call unconditionally on every launch.
+    // import anything new - no UI, nothing surfaced either way. Runs on
+    // every launch; the meeting-id dedup on the Rust side means this is a
+    // real incremental sync, not a one-shot check.
     invoke('attempt_quiet_meetily_import').catch((error) => {
       console.error('[Layout] Quiet Meetily import failed (non-fatal):', error)
     })

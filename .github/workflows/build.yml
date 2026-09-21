@@ -269,8 +269,27 @@ jobs:
           Write-Host "Contents of vulkan-runtime directory:"
           Get-ChildItem $runtimeDir -ErrorAction SilentlyContinue
 
+      - name: Check DigiCert credentials
+        if: contains(inputs.platform, 'windows') && inputs.sign-binaries
+        id: digicert-check
+        shell: bash
+        env:
+          SM_API_KEY: ${{ secrets.SM_API_KEY }}
+        run: |
+          # The `secrets` context can't be referenced directly in a step's
+          # `if:` condition in a reusable (workflow_call) workflow - GitHub
+          # rejects the whole workflow_dispatch with "Unrecognized
+          # named-value: 'secrets'" even when the secret is declared in
+          # on.workflow_call.secrets. Route it through env: here instead,
+          # and gate the later signing steps on this step's output.
+          if [ -n "$SM_API_KEY" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Setup DigiCert Environment
-        if: contains(inputs.platform, 'windows') && inputs.sign-binaries && secrets.SM_API_KEY != ''
+        if: contains(inputs.platform, 'windows') && inputs.sign-binaries && steps.digicert-check.outputs.available == 'true'
         shell: pwsh
         run: |
           # Set environment variables
@@ -313,11 +332,11 @@ jobs:
           "SM_CLIENT_CERT_FILE=D:\Certificate_pkcs12.p12" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Setup DigiCert KeyLocker
-        if: contains(inputs.platform, 'windows') && inputs.sign-binaries && secrets.SM_API_KEY != ''
+        if: contains(inputs.platform, 'windows') && inputs.sign-binaries && steps.digicert-check.outputs.available == 'true'
         uses: digicert/ssm-code-signing@v1.1.1
 
       - name: Sync Certificate to Windows Certificate Store
-        if: contains(inputs.platform, 'windows') && inputs.sign-binaries && secrets.SM_API_KEY != ''
+        if: contains(inputs.platform, 'windows') && inputs.sign-binaries && steps.digicert-check.outputs.available == 'true'
         shell: pwsh
         run: |
           Write-Host "============================================================"
@@ -397,7 +416,7 @@ jobs:
           Write-Host ""
 
       - name: Verify DigiCert Setup
-        if: contains(inputs.platform, 'windows') && inputs.sign-binaries && secrets.SM_API_KEY != ''
+        if: contains(inputs.platform, 'windows') && inputs.sign-binaries && steps.digicert-check.outputs.available == 'true'
         shell: pwsh
         run: |
           Write-Host "=== DigiCert Setup Verification ==="

@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Meetily** is a privacy-first AI meeting assistant that captures, transcribes, and summarizes meetings entirely on local infrastructure. The supported application is the Tauri desktop app with a Rust core.
+**Scribe** (`productName: "Scribe"`, `identifier: com.bobarinn.scribe`) is a privacy-first AI meeting assistant that captures, transcribes, and summarizes meetings entirely on local infrastructure. The supported application is the Tauri desktop app with a Rust core.
+
+Scribe is a rebrand/fork of the open-source [Meetily](https://github.com/Zackriya-Solutions/meeting-minutes) project. It shares the same Tauri app structure and SQLite schema as Meetily, differing mainly by bundle identifier — [frontend/src-tauri/src/meetily_sync.rs](frontend/src-tauri/src/meetily_sync.rs) detects a sibling Meetily install on the same machine and imports its meetings/recordings into Scribe's own database.
 
 1. **Frontend**: Tauri-based desktop application (Rust + Next.js + TypeScript)
 2. **Rust Backend**: Tauri commands, audio capture, transcription, storage, and summarization orchestration
@@ -15,7 +17,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Audio Processing**: Rust (cpal, whisper-rs, professional audio mixing)
 - **Transcription**: Whisper.cpp / whisper-rs and Parakeet paths in the Tauri app
 - **App API Surface**: Tauri commands and events, not a separate FastAPI service
-- **LLM Integration**: Ollama (local), Claude, Groq, OpenRouter
+- **LLM Integration**: Ollama (local), Claude, Groq, OpenRouter, OpenAI-compatible endpoints, and a bundled "Built-in AI" option (local llama.cpp inference via the `llama-helper` sidecar — see [frontend/src-tauri/src/summary/summary_engine](frontend/src-tauri/src/summary/summary_engine))
+- **Rust Workspace**: root [Cargo.toml](Cargo.toml) defines a workspace with two members — `frontend/src-tauri` (the Tauri app) and `llama-helper` (a standalone sidecar binary built separately and bundled at `binaries/llama-helper`; see `llama-helper/src/main.rs`)
 
 ## Essential Development Commands
 
@@ -44,6 +47,22 @@ pnpm run tauri:dev:metal    # macOS Metal GPU
 pnpm run tauri:dev:cuda     # NVIDIA CUDA
 pnpm run tauri:dev:vulkan   # AMD/Intel Vulkan
 pnpm run tauri:dev:cpu      # CPU-only (no GPU)
+
+# Linting
+pnpm run lint               # next lint (ESLint)
+
+# Rust checks (run from frontend/src-tauri)
+cargo check                 # Fast type/borrow-check without a full build
+cargo test                  # Run Rust unit tests (audio, database, summary_engine, etc.)
+```
+
+### Frontend Tests
+
+Frontend unit tests live in `frontend/tests/` and use Bun's built-in test runner (`bun:test`), not Jest/Vitest — no config file is needed. Run them with:
+
+```bash
+cd frontend
+bun test
 ```
 
 ### Legacy Backend Archive
@@ -98,7 +117,9 @@ Raw Audio (Mic + System)
 
 ### Audio Device Modularization (Recently Completed)
 
-**Context**: The audio system was refactored from a monolithic 1028-line `core.rs` file into focused modules. See [AUDIO_MODULARIZATION_PLAN.md](AUDIO_MODULARIZATION_PLAN.md) for details.
+**Context**: The audio system was refactored from a monolithic 1028-line `core.rs` file into focused modules under `frontend/src-tauri/src/audio/`.
+
+**Gotcha — `audio_v2/` is dead code**: `frontend/src-tauri/src/audio_v2/` is a leftover rewrite attempt (modern mixer/resampler/limiter) that is **not** declared as a module anywhere (`lib.rs` only has `pub mod audio;`), so it isn't compiled into the app. Don't build on it or assume it's the live audio path — `audio/` (below) is the one actually wired into the app.
 
 ```
 audio/
@@ -127,6 +148,22 @@ audio/
 - Audio capture issues → `capture/microphone.rs` or `capture/system.rs`
 - Mixing/processing problems → `pipeline.rs`
 - Recording workflow → `recording_manager.rs`
+
+### Top-Level `src-tauri/src` Module Map
+
+Beyond `audio/`, the Rust core is organized by concern under `frontend/src-tauri/src/`:
+
+- `lib.rs` / `main.rs` — Tauri entry point and command registration
+- `database/` — local SQLite persistence (meetings, transcripts, summaries)
+- `whisper_engine/`, `parakeet_engine/` — local STT model loading and transcription
+- `summary/` — summarization orchestration, prompt templates, and the `summary_engine/` local LLM (llama-helper) client
+- `anthropic/`, `groq/`, `ollama/`, `openai/`, `openrouter/` — per-provider LLM client integrations used by `summary/`
+- `onboarding.rs` — first-run setup and model download flows
+- `meeting_detection.rs` — detecting in-progress meetings (e.g. calendar/app-based)
+- `meetily_sync.rs` — one-time import of an existing Meetily install's data (see Project Overview)
+- `notifications/`, `tray.rs` — OS notifications and system tray
+- `config.rs`, `state.rs`, `utils.rs`, `console_utils/` — app config, shared Tauri state, and logging/console helpers
+- `api/` — internal HTTP-facing helpers used by the app (not a public server; see Legacy Backend Archive for the deprecated FastAPI service)
 
 ### Rust ↔ Frontend Communication (Tauri Architecture)
 
@@ -174,8 +211,8 @@ await listen<TranscriptUpdate>('transcript-update', (event) => {
 
 **Model Storage Locations**:
 - **Development**: `frontend/models/`
-- **Production (macOS)**: `~/Library/Application Support/Meetily/models/`
-- **Production (Windows)**: `%APPDATA%\Meetily\models\`
+- **Production (macOS)**: `~/Library/Application Support/Scribe/models/`
+- **Production (Windows)**: `%APPDATA%\Scribe\models\`
 
 **Model Loading** (frontend/src-tauri/src/whisper_engine/whisper_engine.rs):
 ```rust
@@ -387,7 +424,6 @@ $env:RUST_LOG="debug"; ./clean_run_windows.bat
   - `main`: Stable releases
   - `fix/*`: Bug fixes
   - `enhance/*`: Feature enhancements
-  - Current: `fix/audio-mixing` (working on audio pipeline improvements)
 
 ## Key Files Reference
 

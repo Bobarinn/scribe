@@ -25,6 +25,7 @@ import { RecordingPostProcessingProvider } from '@/contexts/RecordingPostProcess
 import { ImportAudioDialog, ImportDropOverlay } from '@/components/ImportAudio'
 import { ImportDialogProvider } from '@/contexts/ImportDialogContext'
 import { ThemeProvider } from '@/components/ThemeProvider'
+import { useTheme } from 'next-themes'
 import { WindowDragHandler } from '@/components/WindowDragHandler'
 import { isAudioExtension, getAudioFormatsDisplayList } from '@/constants/audioFormats'
 
@@ -46,6 +47,23 @@ const sourceSans3 = Source_Sans_3({
   weight: ['400', '500', '600', '700'],
   variable: '--font-source-sans-3',
 })
+
+// Sonner's own `theme` prop controls its toast chrome (backgrounds, richColors
+// variants) independently of the app's `.dark` class on <html> - without this,
+// toasts render with Sonner's light-mode colors while our global dark-mode CSS
+// retrofit (globals.css) still repaints their text to dark-safe colors, making
+// text invisible. Must be inside <ThemeProvider> to read the resolved theme.
+function ThemedToaster() {
+  const { resolvedTheme } = useTheme()
+  return (
+    <Toaster
+      theme={resolvedTheme === 'dark' ? 'dark' : 'light'}
+      position="bottom-center"
+      richColors
+      closeButton
+    />
+  )
+}
 
 // Module-level component — stable reference across RootLayout re-renders.
 // Defined here (not inside RootLayout) so React never sees a new function type
@@ -263,6 +281,7 @@ export default function RootLayout({
         >
         {/* Reliable window dragging from custom titlebar/header drag regions */}
         <WindowDragHandler />
+        <ThemedToaster />
         <RecordingStateProvider>
           <TranscriptProvider>
             <ConfigProvider>
@@ -307,8 +326,6 @@ export default function RootLayout({
           </TranscriptProvider>
         </RecordingStateProvider>
         </ThemeProvider>
-
-        <Toaster position="bottom-center" richColors closeButton />
       </body>
     </html>
   )

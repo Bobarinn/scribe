@@ -1113,7 +1113,7 @@ pub async fn open_meeting_folder<R: Runtime>(
 
     // Get meeting with folder_path
     let meeting: Option<MeetingModel> = sqlx::query_as(
-        "SELECT id, title, created_at, updated_at, folder_path FROM meetings WHERE id = ?",
+        "SELECT id, title, created_at, updated_at, folder_path, meeting_type FROM meetings WHERE id = ?",
     )
     .bind(&meeting_id)
     .fetch_optional(pool)

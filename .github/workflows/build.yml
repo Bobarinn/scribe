@@ -43,6 +43,9 @@ on:
         required: false
         type: boolean
         default: false
+    secrets:
+      SM_API_KEY:
+        required: false
 
 jobs:
   build:
